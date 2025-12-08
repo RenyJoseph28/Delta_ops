@@ -1,0 +1,69 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Sign In - Delta Ops{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <!-- Background -->
+    <div class="auth-bg">
+        <img src="{% static 'images/flood-hero.jpg' %}" alt="Flood landscape" class="auth-bg-image">
+        <div class="auth-overlay"></div>
+    </div>
+
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <!-- Auth Card -->
+        <div class="auth-card glass">
+            <!-- Logo -->
+            <a href="/" class="auth-logo">
+                <div class="logo-icon">
+                    <i data-lucide="waves" class="icon"></i>
+                </div>
+                <span class="logo-text">Delta Ops</span>
+            </a>
+
+            <h1 class="auth-title">Welcome Back</h1>
+            <p class="auth-subtitle">Sign in to access your flood monitoring dashboard</p>
+
+            <!-- Form -->
+            <form class="auth-form" method="POST" action="{% url 'signin' %}">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i data-lucide="mail" class="label-icon"></i>
+                        Email Address
+                    </label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i data-lucide="lock" class="label-icon"></i>
+                        Password
+                    </label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" class="form-input"
+                            placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                            <i data-lucide="eye" class="toggle-icon" id="passwordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i data-lucide="log-in" class="btn-icon"></i>
+                    Sign In
+                </button>
+            </form>
+
+            <p class="auth-footer">
+                Don't have an account?
+                <a href="{% url 'signup' %}" class="auth-link">Create one</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

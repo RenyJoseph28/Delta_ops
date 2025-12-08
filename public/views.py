@@ -4,6 +4,11 @@ from django.http import HttpResponse
 
 
 def home(request):
-    print("HOME VIEW WAS CALLED!")
 
-    return HttpResponse("Public Home Page")
+    return render(request,'public/index.html')
+
+def signin(request):
+    return render(request, 'public/signin.html')
+
+def signup(request):
+    return render(request, 'public/signup.html')
