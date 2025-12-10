@@ -80,6 +80,18 @@
 
     <script src="{% static 'js/main.js' %}"></script>
     {% block extra_js %}{% endblock %}
+
+    <!-- Auto close messages after 4 seconds -->
+    <script>
+        // Auto-close messages after 4 seconds
+        setTimeout(() => {
+            const messages = document.querySelector('.messages-container');
+            if (messages) {
+                messages.style.display = 'none';
+            }
+        }, 4000);
+    </script>
+
 </body>
 
 </html>

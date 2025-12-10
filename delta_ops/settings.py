@@ -78,12 +78,26 @@ WSGI_APPLICATION = "delta_ops.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
+
+# Database configuration for PostgreSQL
+
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "delta_ops_db",      # your database name
+        "USER": "postgres",          # your postgres username
+        "PASSWORD": "admin", # your postgres password
+        "HOST": "localhost",         # or IP / domain
+        "PORT": "5432",              # default PostgreSQL port
     }
 }
+
 
 
 # Password validation
@@ -110,7 +124,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+# TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Kolkata"
 
 USE_I18N = True
 
@@ -127,3 +142,20 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'deltaopsproject@gmail.com'  # Your Gmail
+EMAIL_HOST_PASSWORD = 'numk cmgx snkp exdz'  # Your Gmail App Password
+DEFAULT_FROM_EMAIL = 'Delta Ops <deltaopsproject@gmail.com>'
+
+# OpenWeatherMap API Key
+OPENWEATHER_API_KEY = 'cb57a9b625c4b5c287faaaf107eaae10'
+
+# Cache weather data for 10 minutes
+WEATHER_CACHE_TIMEOUT = 600  # seconds
+
