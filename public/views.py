@@ -335,14 +335,14 @@ def dashboard(request):
             'weather_data': weather_data,
         }
         
-        return render(request, 'public/dashboard.html', context)
+        return render(request, 'user/dashboard.html', context)
         
     except public_users.DoesNotExist:
         messages.error(request, 'User not found.')
         return redirect('signin')
     except Exception as e:
         messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'public/dashboard.html', {
+        return render(request, 'user/dashboard.html', {
             'user_name': request.session.get('user_name', 'User'),
             'user_email': request.session.get('user_email', ''),
             'user_district': request.session.get('user_district', ''),
