@@ -1,1 +1,89 @@
-<p>hello admin</p>
+{% extends 'super_admin/base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+  <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+    <div style="flex:1; min-width:240px; max-width:360px;">
+      <div style="background:white; padding:1rem; border-radius:12px;">
+        <div style="font-size:.85rem; color:#6b7280;">Total users</div>
+        <div style="font-weight:700; font-size:1.5rem;">{{ total_users }}</div>
+
+        <div style="margin-top:.5rem; color:#6b7280;">Active users: {{ active_users }}</div>
+      </div>
+    </div>
+
+    <div style="flex:2; min-width:320px;">
+      <div style="background:white; padding:1rem; border-radius:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-weight:700">Weather — {{ default_district }}</div>
+          <div>
+            <select id="admin_district_select" style="padding:.35rem .5rem; border-radius:.5rem;">
+              <!-- quick district list -->
+              <option>Thiruvananthapuram</option>
+              <option>Kollam</option>
+              <option>Kozhikode</option>
+              <option>Ernakulam</option>
+              <option>Kozhikode</option>
+            </select>
+            <button id="fetch_weather_btn" style="margin-left:.5rem; padding:.35rem .6rem; border-radius:.5rem;">Refresh</button>
+          </div>
+        </div>
+
+        <div id="admin_weather_card" style="margin-top:1rem;">
+          {% if weather_data %}
+            <div style="display:flex; gap:1rem; align-items:center;">
+              <img src="{{ weather_data.icon_url }}" alt="{{ weather_data.description }}" style="width:64px;height:64px;">
+              <div>
+                <div style="font-size:1.5rem; font-weight:700;">{{ weather_data.temperature }}°C</div>
+                <div style="color:#6b7280;">{{ weather_data.description }} • Feels like {{ weather_data.feels_like }}°C</div>
+              </div>
+            </div>
+          {% else %}
+            <div style="color:#6b7280;">Weather unavailable</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:1rem;">
+    <div style="background:white; padding:1rem; border-radius:12px;">
+      <div style="font-weight:700; margin-bottom:.5rem;">Recently Registered Users</div>
+      <ul>
+        {% for u in recent_users %}
+          <li style="padding:.35rem 0;">{{ u.fullname }} — {{ u.email }} <small style="color:#6b7280">({{ u.created_at }})</small></li>
+        {% empty %}
+          <li>No users yet</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('fetch_weather_btn').addEventListener('click', function(){
+    const district = document.getElementById('admin_district_select').value;
+    fetch("{% url 'admin_get_weather' %}?district=" + encodeURIComponent(district))
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            alert('Weather fetch failed');
+            return;
+        }
+        const card = document.getElementById('admin_weather_card');
+        card.innerHTML = `
+            <div style="display:flex; gap:1rem; align-items:center;">
+              <img src="${data.icon_url}" alt="${data.description}" style="width:64px;height:64px;">
+              <div>
+                <div style="font-size:1.5rem; font-weight:700;">${data.temperature}°C</div>
+                <div style="color:#6b7280;">${data.description} • Feels like ${data.feels_like}°C</div>
+              </div>
+            </div>
+        `;
+    });
+});
+</script>
+{% endblock %}

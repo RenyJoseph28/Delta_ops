@@ -92,7 +92,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "delta_ops_db",      # your database name
         "USER": "postgres",          # your postgres username
-        "PASSWORD": "123", # your postgres password
+        "PASSWORD": "admin", # your postgres password
         "HOST": "localhost",         # or IP / domain
         "PORT": "5432",              # default PostgreSQL port
     }

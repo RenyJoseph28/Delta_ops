@@ -1,0 +1,44 @@
+{% extends 'super_admin/base.html' %}
+{% block title %}Signup Users{% endblock %}
+{% block page_title %}Signup Users{% endblock %}
+
+{% block content %}
+  <div style="background:white; padding:1rem; border-radius:12px;">
+    <form method="get" style="display:flex; gap:.5rem; margin-bottom:1rem;">
+      <input type="text" name="q" placeholder="Search name/email/mobile" value="{{ q }}" style="flex:1; padding:.5rem; border-radius:.5rem;">
+      <button type="submit" style="padding:.45rem .8rem; border-radius:.5rem;">Search</button>
+    </form>
+
+    <table style="width:100%; border-collapse:collapse;">
+      <thead style="text-align:left; color:#6b7280;">
+        <tr>
+          <th>#</th><th>Name</th><th>Email</th><th>Mobile</th><th>District</th><th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users_page %}
+        <tr style="border-top:1px solid #f1f5f9;">
+          <td>{{ forloop.counter0|add:users_page.start_index }}</td>
+          <td>{{ user.fullname }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.mobile }}</td>
+          <td>{{ user.district }}</td>
+          <td>{{ user.created_at }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center;">
+      {% if users_page.has_previous %}
+        <a href="?page={{ users_page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">Prev</a>
+      {% endif %}
+      <span>Page {{ users_page.number }} of {{ users_page.paginator.num_pages }}</span>
+      {% if users_page.has_next %}
+        <a href="?page={{ users_page.next_page_number }}{% if q %}&q={{ q }}{% endif %}">Next</a>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
