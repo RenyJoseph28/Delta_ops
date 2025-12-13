@@ -11,9 +11,11 @@ from django.shortcuts import render, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.contrib.auth.hashers import check_password, make_password
-from .helpers import fetch_weather_for_city
+from .helpers import fetch_weather_for_city, send_weather_email_alert
 
+from django.views.decorators.http import require_POST
 
+from django.utils.timezone import now
 
 from public.models import public_users
 
@@ -64,11 +66,19 @@ def super_admin_logout(request):
 def super_admin_dashboard(request):
     if "super_admin_id" not in request.session:
         return redirect("admin_login")
+    
+    today = timezone.localdate()
 
     # quick stats
     total_users = public_users.objects.count()
-    active_users = public_users.objects.filter(is_active=True).count()
+    active_users = public_users.objects.filter(is_active=True, email_verified__isnull=False).count()
     recent_users = public_users.objects.order_by("-created_at")[:5]
+
+    alerts_today = weather_alerts.objects.filter(
+        sent_at__date=today
+    ).count()
+
+    print("alerts_today:", alerts_today)
 
     # default district for weather widget - we can show statewide or pick one; using Thiruvananthapuram as default
     default_district = request.GET.get("district") or "Thiruvananthapuram"
@@ -78,6 +88,7 @@ def super_admin_dashboard(request):
         "admin_username": request.session.get("super_admin_username"),
         "total_users": total_users,
         "active_users": active_users,
+        "alerts_today": alerts_today,
         "recent_users": recent_users,
         "weather_data": weather,
         "default_district": default_district,
@@ -124,4 +135,34 @@ def admin_get_weather(request):
     weather = fetch_weather_for_city(district)
     if not weather:
         return JsonResponse({"error": "failed"}, status=500)
+    
+    # 🔥 SEND EMAIL ALERT
+    send_weather_email_alert(district, weather)
+
     return JsonResponse(weather)
+
+
+
+
+@require_POST
+def send_manual_weather_alert(request):
+    if "super_admin_id" not in request.session:
+        return JsonResponse({"error": "unauthorized"}, status=401)
+
+    district = request.POST.get("district")
+
+    if not district:
+        return JsonResponse({"error": "District required"}, status=400)
+
+    weather = fetch_weather_for_city(district)
+
+    if not weather:
+        return JsonResponse({"error": "Failed to fetch weather"}, status=500)
+
+    # 🔔 Send email alert
+    send_weather_email_alert(district, weather)
+
+    return JsonResponse({
+        "success": True,
+        "message": f"Alert triggered for {district}"
+    })

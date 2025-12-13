@@ -10,3 +10,16 @@ class super_admin(models.Model):
     date_joined = models.DateTimeField()
     class Meta:
         db_table = 'super_admin'
+
+
+class weather_alerts(models.Model):
+    district = models.CharField(max_length=50)
+    risk_level = models.CharField(max_length=20)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "weather_alerts"
+
+    def __str__(self):
+        return f"{self.district} - {self.risk_level}"
+

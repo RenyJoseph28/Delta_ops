@@ -3,42 +3,116 @@
 {% block page_title %}Signup Users{% endblock %}
 
 {% block content %}
-  <div style="background:white; padding:1rem; border-radius:12px;">
-    <form method="get" style="display:flex; gap:.5rem; margin-bottom:1rem;">
-      <input type="text" name="q" placeholder="Search name/email/mobile" value="{{ q }}" style="flex:1; padding:.5rem; border-radius:.5rem;">
-      <button type="submit" style="padding:.45rem .8rem; border-radius:.5rem;">Search</button>
-    </form>
+<div class="card">
 
-    <table style="width:100%; border-collapse:collapse;">
-      <thead style="text-align:left; color:#6b7280;">
+  <!-- Header -->
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Registered Users</h3>
+      <p class="card-subtitle">Manage and monitor registered public users</p>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <form method="get" class="table-search">
+    <div class="search-input">
+      <i data-lucide="search"></i>
+      <input
+        type="text"
+        name="q"
+        placeholder="Search name, email or mobile"
+        value="{{ q }}"
+      />
+    </div>
+    <button type="submit" class="btn-primary">
+      Search
+    </button>
+  </form>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
         <tr>
-          <th>#</th><th>Name</th><th>Email</th><th>Mobile</th><th>District</th><th>Joined</th>
+          <th>#</th>
+          <th>User</th>
+          <th>Contact</th>
+          <th>District</th>
+          <th>Status</th>
+          <th>Joined</th>
         </tr>
       </thead>
       <tbody>
         {% for user in users_page %}
-        <tr style="border-top:1px solid #f1f5f9;">
+        <tr>
           <td>{{ forloop.counter0|add:users_page.start_index }}</td>
-          <td>{{ user.fullname }}</td>
-          <td>{{ user.email }}</td>
+
+          <td>
+            <div class="user-cell">
+              <div class="user-avatar">
+                {{ user.fullname|slice:":1"|upper }}
+              </div>
+              <div>
+                <p class="user-name">{{ user.fullname }}</p>
+                <p class="user-email">{{ user.email }}</p>
+              </div>
+            </div>
+          </td>
+
           <td>{{ user.mobile }}</td>
-          <td>{{ user.district }}</td>
-          <td>{{ user.created_at }}</td>
+
+          <td>
+            <span class="badge neutral">
+              {{ user.district }}
+            </span>
+          </td>
+
+          <td>
+            {% if user.is_active and user.email_verified %}
+              <span class="badge success">Active</span>
+            {% elif user.is_active %}
+              <span class="badge warning">Unverified</span>
+            {% else %}
+              <span class="badge danger">Inactive</span>
+            {% endif %}
+          </td>
+
+          <td>{{ user.created_at|date:"d M Y" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="6">No users found.</td></tr>
+        <tr>
+          <td colspan="6" class="empty-state">
+            <i data-lucide="users"></i>
+            <p>No users found</p>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
-
-    <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center;">
-      {% if users_page.has_previous %}
-        <a href="?page={{ users_page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">Prev</a>
-      {% endif %}
-      <span>Page {{ users_page.number }} of {{ users_page.paginator.num_pages }}</span>
-      {% if users_page.has_next %}
-        <a href="?page={{ users_page.next_page_number }}{% if q %}&q={{ q }}{% endif %}">Next</a>
-      {% endif %}
-    </div>
   </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    {% if users_page.has_previous %}
+      <a class="page-btn" href="?page={{ users_page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">
+        ← Prev
+      </a>
+    {% endif %}
+
+    <span class="page-info">
+      Page {{ users_page.number }} of {{ users_page.paginator.num_pages }}
+    </span>
+
+    {% if users_page.has_next %}
+      <a class="page-btn" href="?page={{ users_page.next_page_number }}{% if q %}&q={{ q }}{% endif %}">
+        Next →
+      </a>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  lucide.createIcons();
+</script>
 {% endblock %}

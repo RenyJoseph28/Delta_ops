@@ -224,11 +224,11 @@
         <ul class="sidebar-menu">
             <li><a href="{% url 'dashboard' %}" class="{% block nav_dashboard %}{% endblock %}"><i
                         data-lucide="layout-dashboard"></i> Dashboard</a></li>
-            <li><a href="#" class="{% block nav_profile %}{% endblock %}"><i data-lucide="user"></i> Profile</a></li>
-            <li><a href="#" class="{% block nav_alerts %}{% endblock %}"><i data-lucide="bell"></i> Alerts</a></li>
-            <li><a href="#" class="{% block nav_weather %}{% endblock %}"><i data-lucide="cloud-rain"></i> Live
+            <!-- <li><a href="#" class="{% block nav_profile %}{% endblock %}"><i data-lucide="user"></i> Profile</a></li> -->
+            <li><a href="{% url 'user_alerts' %}" class="{% block nav_alerts %}{% endblock %}"><i data-lucide="bell"></i> Alerts</a></li>
+            <!-- <li><a href="#" class="{% block nav_weather %}{% endblock %}"><i data-lucide="cloud-rain"></i> Live
                     Weather</a></li>
-            <li><a href="#" class="{% block nav_zones %}{% endblock %}"><i data-lucide="map"></i> Flood Zones</a></li>
+            <li><a href="#" class="{% block nav_zones %}{% endblock %}"><i data-lucide="map"></i> Flood Zones</a></li> -->
             <li><a href="{% url 'signout' %}"><i data-lucide="log-out"></i> Logout</a></li>
         </ul>
     </div>
