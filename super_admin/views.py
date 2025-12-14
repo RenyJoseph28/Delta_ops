@@ -122,6 +122,7 @@ def signup_users_list(request):
     context = {
         "users_page": users_page,
         "q": q,
+        "admin_username": request.session.get("super_admin_username"),
     }
     return render(request, "super_admin/users_list.html", context)
 
