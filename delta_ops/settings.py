@@ -159,3 +159,5 @@ OPENWEATHER_API_KEY = 'cb57a9b625c4b5c287faaaf107eaae10'
 # Cache weather data for 10 minutes
 WEATHER_CACHE_TIMEOUT = 600  # seconds
 
+ALERT_TEST_MODE = True
+

@@ -77,6 +77,70 @@ def calculate_risk(weather):
 
 
 # --- helper to send weather alert emails ---
+# def send_weather_email_alert(district, weather):
+#     risk = calculate_risk(weather)
+
+#     # Do not alert for low risk
+#     if risk == "low":
+#         return
+
+#     # Cooldown: do not send same alert within 3 hours
+#     recent_alert = weather_alerts.objects.filter(
+#         district=district,
+#         risk_level=risk,
+#         sent_at__gte=timezone.now() - timedelta(hours=3)
+#     ).exists()
+
+#     if recent_alert:
+#         return
+
+#     # Get users in that district
+#     users = public_users.objects.filter(
+#         district__iexact=district,
+#         is_active=True
+#     )
+
+#     if not users.exists():
+#         return
+
+#     # Email content
+#     subject = f"⚠️ Weather Alert for {district}"
+
+#     if risk == "high":
+#         message = (
+#             f"🚨 HIGH RISK WEATHER ALERT 🚨\n\n"
+#             f"Severe weather conditions are expected in {district}.\n"
+#             f"Rain Probability: {weather['rain_probability']}%\n"
+#             f"Humidity: {weather['humidity']}%\n\n"
+#             f"Please avoid unnecessary travel and stay safe.\n\n"
+#             f"- Delta Ops"
+#         )
+#     else:
+#         message = (
+#             f"⚠️ MODERATE WEATHER ALERT ⚠️\n\n"
+#             f"Heavy rain is expected in {district}.\n"
+#             f"Rain Probability: {weather['rain_probability']}%\n\n"
+#             f"Please stay alert.\n\n"
+#             f"- Delta Ops"
+#         )
+
+#     recipient_list = list(users.values_list("email", flat=True))
+
+#     send_mail(
+#         subject,
+#         message,
+#         settings.DEFAULT_FROM_EMAIL,
+#         recipient_list,
+#         fail_silently=True
+#     )
+
+#     # Save alert log
+#     weather_alerts.objects.create(
+#         district=district,
+#         risk_level=risk
+#     )
+
+
 def send_weather_email_alert(district, weather):
     risk = calculate_risk(weather)
 
@@ -84,15 +148,18 @@ def send_weather_email_alert(district, weather):
     if risk == "low":
         return
 
-    # Cooldown: do not send same alert within 3 hours
-    recent_alert = weather_alerts.objects.filter(
-        district=district,
-        risk_level=risk,
-        sent_at__gte=timezone.now() - timedelta(hours=3)
-    ).exists()
+    # ----------------------------------------
+    # Cooldown logic (disabled in test mode)
+    # ----------------------------------------
+    if not getattr(settings, "ALERT_TEST_MODE", False):
+        recent_alert = weather_alerts.objects.filter(
+            district=district,
+            risk_level=risk,
+            sent_at__gte=timezone.now() - timedelta(hours=3)
+        ).exists()
 
-    if recent_alert:
-        return
+        if recent_alert:
+            return
 
     # Get users in that district
     users = public_users.objects.filter(
@@ -100,10 +167,11 @@ def send_weather_email_alert(district, weather):
         is_active=True
     )
 
-    if not users.exists():
-        return
+    # FOR TESTING: send to admin if no users
+    recipient_list = list(users.values_list("email", flat=True))
+    if not recipient_list:
+        recipient_list = [settings.DEFAULT_FROM_EMAIL]
 
-    # Email content
     subject = f"⚠️ Weather Alert for {district}"
 
     if risk == "high":
@@ -124,17 +192,16 @@ def send_weather_email_alert(district, weather):
             f"- Delta Ops"
         )
 
-    recipient_list = list(users.values_list("email", flat=True))
-
-    send_mail(
+    sent = send_mail(
         subject,
         message,
         settings.DEFAULT_FROM_EMAIL,
         recipient_list,
-        fail_silently=True
+        fail_silently=False
     )
 
-    # Save alert log
+    print(f"EMAIL SENT | District={district} | Risk={risk} | Count={sent}")
+
     weather_alerts.objects.create(
         district=district,
         risk_level=risk

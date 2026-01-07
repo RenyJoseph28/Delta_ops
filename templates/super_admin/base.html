@@ -989,6 +989,12 @@
           <i data-lucide="users" class="sidebar-icon"></i>
           <span>Signup Users</span>
         </a>
+        <a href="{% url 'ml_flood_prediction' %}"
+          class="sidebar-link {% if request.resolver_match.url_name == 'ml_flood_prediction' %}active{% endif %}">
+          <i data-lucide="activity" class="sidebar-icon"></i>
+          <span>ML Flood Prediction</span>
+        </a>
+
         <!-- <a href="#" class="sidebar-link">
           <i data-lucide="cloud" class="sidebar-icon"></i>
           <span>Weather Data</span>

@@ -167,3 +167,58 @@ def send_manual_weather_alert(request):
         "success": True,
         "message": f"Alert triggered for {district}"
     })
+
+
+from super_admin.ml.ml_model import predict_flood_risk
+
+KERALA_DISTRICTS = [
+    "Alappuzha","Ernakulam","Idukki","Kannur","Kasaragod","Kollam",
+    "Kottayam","Kozhikode","Malappuram","Palakkad","Pathanamthitta",
+    "Thiruvananthapuram","Thrissur","Wayanad"
+]
+
+def ml_flood_prediction_view(request):
+    if "super_admin_id" not in request.session:
+        return redirect("admin_login")
+
+    selected_district = request.GET.get("district")
+
+    # ----------------------------
+    # 1. OVERVIEW DATA (ALL 14)
+    # ----------------------------
+    district_overview = []
+
+    for d in KERALA_DISTRICTS:
+        weather = fetch_weather_for_city(d)
+        if not weather:
+            continue
+
+        ml = predict_flood_risk(d, weather)
+
+        district_overview.append({
+            "name": d,
+            "temp": weather["temperature"],
+            "rain": weather["rain_probability"],
+            "risk": ml["risk"]
+        })
+
+    # ----------------------------
+    # 2. DETAILED VIEW (OPTIONAL)
+    # ----------------------------
+    weather = None
+    ml_result = None
+
+    if selected_district:
+        weather = fetch_weather_for_city(selected_district)
+        if weather:
+            ml_result = predict_flood_risk(selected_district, weather)
+
+    context = {
+        "districts": KERALA_DISTRICTS,
+        "district": selected_district,
+        "district_overview": district_overview,
+        "weather": weather,
+        "ml": ml_result,
+    }
+
+    return render(request, "super_admin/ml_prediction.html", context)

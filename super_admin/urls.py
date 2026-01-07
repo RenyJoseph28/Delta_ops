@@ -8,5 +8,7 @@ urlpatterns = [
     path('users/', views.signup_users_list, name='signup_users_list'),
     path('api/weather/', views.admin_get_weather, name='admin_get_weather'),
     path("alerts/send/", views.send_manual_weather_alert, name="send_manual_weather_alert"),
+    path("ml-flood-prediction/", views.ml_flood_prediction_view, name="ml_flood_prediction"),
+
 
 ]
