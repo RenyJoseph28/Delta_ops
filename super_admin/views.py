@@ -177,48 +177,160 @@ KERALA_DISTRICTS = [
     "Thiruvananthapuram","Thrissur","Wayanad"
 ]
 
+# def ml_flood_prediction_view(request):
+#     if "super_admin_id" not in request.session:
+#         return redirect("admin_login")
+
+#     selected_district = request.GET.get("district")
+
+#     # ----------------------------
+#     # 1. OVERVIEW DATA (ALL 14)
+#     # ----------------------------
+#     district_overview = []
+
+#     for d in KERALA_DISTRICTS:
+#         weather = fetch_weather_for_city(d)
+#         if not weather:
+#             continue
+
+#         ml = predict_flood_risk(d, weather)
+
+#         district_overview.append({
+#             "name": d,
+#             "temp": weather["temperature"],
+#             "rain": weather["rain_probability"],
+#             "risk": ml["risk"]
+#         })
+
+#     # ----------------------------
+#     # 2. DETAILED VIEW (OPTIONAL)
+#     # ----------------------------
+#     weather = None
+#     ml_result = None
+
+#     if selected_district:
+#         weather = fetch_weather_for_city(selected_district)
+#         if weather:
+#             ml_result = predict_flood_risk(selected_district, weather)
+
+#     context = {
+#         "districts": KERALA_DISTRICTS,
+#         "district": selected_district,
+#         "district_overview": district_overview,
+#         "weather": weather,
+#         "ml": ml_result,
+#     }
+
+#     return render(request, "super_admin/ml_prediction.html", context)
+
+# def ml_flood_prediction_view(request):
+#     if "super_admin_id" not in request.session:
+#         return redirect("admin_login")
+
+#     selected_district = request.GET.get("district")
+
+#     district_overview = []
+#     detailed_weather = None
+#     detailed_ml = None
+
+#     for d in KERALA_DISTRICTS:
+#         weather = fetch_weather_for_city(d)
+#         if not weather:
+#             continue
+
+#         ml = predict_flood_risk(d, weather)
+
+#         # ✅ Add to overview list
+#         district_overview.append({
+#             "name": d,
+#             "temp": weather["temperature"],
+#             "rain": weather["rain_probability"],
+#             "risk": ml["risk"],
+#             "weather": weather,   # ✅ store full weather
+#             "ml": ml              # ✅ store full ML result
+#         })
+
+#         # ✅ If selected district, reuse same manipulated values
+#         if selected_district == d:
+#             detailed_weather = weather
+#             detailed_ml = ml
+
+#     context = {
+#         "districts": KERALA_DISTRICTS,
+#         "district": selected_district,
+#         "district_overview": district_overview,
+#         "weather": detailed_weather,
+#         "ml": detailed_ml,
+#     }
+
+#     return render(request, "super_admin/ml_prediction.html", context)
+
+
 def ml_flood_prediction_view(request):
     if "super_admin_id" not in request.session:
         return redirect("admin_login")
 
     selected_district = request.GET.get("district")
 
-    # ----------------------------
-    # 1. OVERVIEW DATA (ALL 14)
-    # ----------------------------
     district_overview = []
+    detailed_weather = None
+    detailed_ml = None
 
+    # =====================================================
+    # LOOP THROUGH ALL DISTRICTS
+    # =====================================================
     for d in KERALA_DISTRICTS:
+
+        # -------------------------------------------------
+        # 1. Fetch Live Weather
+        # -------------------------------------------------
         weather = fetch_weather_for_city(d)
         if not weather:
             continue
 
+        # -------------------------------------------------
+        # 2. Predict Flood Risk (ML + Demo Override Happens)
+        # -------------------------------------------------
         ml = predict_flood_risk(d, weather)
 
+        # -------------------------------------------------
+        # ✅ IMPORTANT FIX:
+        # Replace live weather with overridden demo weather
+        # -------------------------------------------------
+        weather = ml["final_weather"]
+
+        # -------------------------------------------------
+        # 3. Add District Card Overview Data
+        # -------------------------------------------------
         district_overview.append({
             "name": d,
             "temp": weather["temperature"],
-            "rain": weather["rain_probability"],
-            "risk": ml["risk"]
+            "rain": weather.get("rain_1h", 0),   # use overridden rain
+            "risk": ml["risk"],
+
+            # store full objects
+            "weather": weather,
+            "ml": ml
         })
 
-    # ----------------------------
-    # 2. DETAILED VIEW (OPTIONAL)
-    # ----------------------------
-    weather = None
-    ml_result = None
+        # -------------------------------------------------
+        # 4. If Selected District → Show Detailed Section
+        # -------------------------------------------------
+        if selected_district == d:
+            detailed_weather = weather
+            detailed_ml = ml
 
-    if selected_district:
-        weather = fetch_weather_for_city(selected_district)
-        if weather:
-            ml_result = predict_flood_risk(selected_district, weather)
-
+    # =====================================================
+    # FINAL CONTEXT TO TEMPLATE
+    # =====================================================
     context = {
         "districts": KERALA_DISTRICTS,
         "district": selected_district,
         "district_overview": district_overview,
-        "weather": weather,
-        "ml": ml_result,
+        "weather": detailed_weather,
+        "ml": detailed_ml,
     }
 
     return render(request, "super_admin/ml_prediction.html", context)
+
+
