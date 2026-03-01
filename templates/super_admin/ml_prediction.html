@@ -1,0 +1,191 @@
+{% extends "super_admin/base.html" %}
+{% load static %}
+
+{% block title %}ML Flood Risk Prediction{% endblock %}
+{% block page_title %}ML Flood Risk Prediction{% endblock %}
+
+{% block content %}
+
+<style>
+/* ===== GRID SYSTEM ===== */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+.card h4, .card h3 {
+  margin-bottom: 10px;
+}
+
+.card small {
+  color: #6b7280;
+}
+
+/* ===== STATUS ===== */
+.status-badge.low { background:#dcfce7;color:#166534;padding:6px 12px;border-radius:20px; }
+.status-badge.medium { background:#fef9c3;color:#854d0e;padding:6px 12px;border-radius:20px; }
+.status-badge.high { background:#fee2e2;color:#991b1b;padding:6px 12px;border-radius:20px; }
+</style>
+
+<!-- =========================
+   DISTRICT SELECT
+========================= -->
+<div class="card">
+  <h3>🌊 ML Flood Risk Prediction</h3>
+  <form method="get">
+    <div class="grid-2">
+      <select name="district" class="district-select">
+        <option value="">-- Select District --</option>
+        {% for d in districts %}
+          <option value="{{ d }}" {% if d == district %}selected{% endif %}>
+            {{ d }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="refresh-btn">
+        🔍 View Detailed Prediction
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- =========================
+   KERALA OVERVIEW (GRID)
+========================= -->
+<div class="card">
+  <h3>🌍 Kerala District Flood Overview</h3>
+  <div class="grid-4">
+    {% for d in district_overview %}
+    <div class="card">
+      <h4>{{ d.name }}</h4>
+      <p>🌡 {{ d.temp }} °C</p>
+      <!-- <p>🌧 {{ d.rain }}%</p> -->
+      <p>🌧 Rain: {{ d.rain }} mm</p>
+      <span class="status-badge {{ d.risk|lower }}">
+        {{ d.risk }} Risk
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if weather %}
+<!-- =========================
+   DETAILED SECTION (SIDE BY SIDE)
+========================= -->
+<div class="grid-2">
+
+  <!-- WEATHER -->
+  <div class="card">
+    <h4>🌤 Live Weather — {{ district }}</h4>
+    <p>Temperature: {{ weather.temperature }} °C</p>
+    <p>Humidity: {{ weather.humidity }}%</p>
+    <p>Rain (1h): {{ weather.rain_1h }} mm</p>
+    <p>Wind Speed: {{ weather.wind_speed }} m/s</p>
+    <p>{{ weather.description }}</p>
+  </div>
+
+  <!-- ML RESULT -->
+  <div class="card">
+    <h4>🤖 ML Risk Assessment</h4>
+    <span class="status-badge {{ ml.risk|lower }}">
+      {{ ml.risk }} Flood Risk
+    </span>
+    <p style="margin-top:8px;">
+      Prediction based on real-time weather + trained ML model.
+    </p>
+  </div>
+
+</div>
+
+<!-- =========================
+   PIE CHART + ALERT
+========================= -->
+<div class="grid-2">
+
+  <!-- PIE -->
+  <div class="card">
+    <h4>📊 Prediction Confidence</h4>
+    <div style="max-width:320px;margin:auto;">
+      <canvas id="riskChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <!-- ALERT -->
+  <div class="card">
+    <h4>🔔 Alert Control</h4>
+    {% if ml.risk != "Low" %}
+    <button id="send_alert_btn" class="refresh-btn danger">
+      Send Manual Alert
+    </button>
+    {% else %}
+    <p>No alert required (Low Risk)</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% if ml %}
+<script>
+new Chart(document.getElementById("riskChart"), {
+  type: "pie",
+  data: {
+    labels: ["Low", "Medium", "High"],
+    datasets: [{
+      data: [
+        {{ ml.confidence.Low }},
+        {{ ml.confidence.Medium }},
+        {{ ml.confidence.High }}
+      ],
+      backgroundColor: ["#22c55e","#facc15","#ef4444"]
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: "bottom" } }
+  }
+});
+</script>
+
+<script>
+const btn = document.getElementById("send_alert_btn");
+if (btn) {
+  btn.onclick = async () => {
+    if (!confirm("Send alert for {{ district }}?")) return;
+    await fetch("{% url 'send_manual_weather_alert' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: "district={{ district }}"
+    });
+    alert("Alert sent");
+  };
+}
+</script>
+{% endif %}
+{% endblock %}

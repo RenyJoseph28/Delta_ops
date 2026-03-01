@@ -1,0 +1,299 @@
+{% extends "super_admin/base.html" %}
+{% block title %}{{ shelter.name }} — Delta Ops{% endblock %}
+{% block page_title %}{{ shelter.name }}{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'admin_edit_shelter' shelter.id %}" class="btn btn-secondary">
+  <i data-lucide="pencil" style="width:16px;height:16px;"></i> Edit
+</a>
+<a href="{% url 'admin_shelter_dashboard' %}" class="btn btn-secondary">
+  <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:1100px){ .detail-grid{ grid-template-columns:1fr; } }
+  .info-row { display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0; border-bottom:1px solid hsl(var(--border)); font-size:0.875rem; }
+  .info-row:last-child { border:none; }
+  .info-label { color:hsl(var(--muted-foreground)); }
+  .info-value { font-weight:500; }
+  .risk-banner { border-radius:0.75rem; padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .risk-banner.high   { background:hsla(0,84%,60%,0.08);   border:1px solid hsla(0,84%,60%,0.25); }
+  .risk-banner.medium { background:hsla(38,92%,50%,0.08);  border:1px solid hsla(38,92%,50%,0.25); }
+  .risk-banner.low    { background:hsla(142,76%,36%,0.08); border:1px solid hsla(142,76%,36%,0.25); }
+  .risk-banner-title { font-weight:700; font-size:1.1rem; }
+  .risk-banner.high   .risk-banner-title { color:hsl(var(--destructive)); }
+  .risk-banner.medium .risk-banner-title { color:hsl(var(--warning)); }
+  .risk-banner.low    .risk-banner-title { color:hsl(var(--success)); }
+  .probability-circle { width:70px; height:70px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; border:3px solid; }
+  .probability-circle.high   { border-color:hsl(var(--destructive)); color:hsl(var(--destructive)); }
+  .probability-circle.medium { border-color:hsl(var(--warning));     color:hsl(var(--warning)); }
+  .probability-circle.low    { border-color:hsl(var(--success));     color:hsl(var(--success)); }
+  .supply-block { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .supply-card { border-radius:0.75rem; padding:1rem; border:1px solid hsl(var(--border)); background:hsl(var(--secondary)/0.4); }
+  .supply-icon { font-size:1.75rem; margin-bottom:0.5rem; }
+  .supply-label { font-size:0.75rem; font-weight:600; text-transform:uppercase; color:hsl(var(--muted-foreground)); letter-spacing:0.06em; }
+  .supply-days { font-size:1.75rem; font-weight:700; }
+  .supply-days.ok       { color:hsl(var(--success)); }
+  .supply-days.low      { color:hsl(var(--warning)); }
+  .supply-days.critical,.supply-days.out,.supply-days.out_soon { color:hsl(var(--destructive)); }
+  .history-row { padding:0.625rem 0; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid hsl(var(--border)); font-size:0.85rem; flex-wrap:wrap; }
+  .history-row:last-child { border:none; }
+  .alert-item { display:flex; align-items:flex-start; gap:0.75rem; padding:0.75rem; border-radius:0.5rem; border:1px solid hsl(var(--border)); margin-bottom:0.5rem; }
+  .alert-item.overflow_high  { border-left:3px solid hsl(var(--destructive)); }
+  .alert-item.food_low       { border-left:3px solid hsl(var(--warning)); }
+  .alert-item.water_low      { border-left:3px solid hsl(38 60% 55%); }
+  .alert-item.understaffed   { border-left:3px solid hsl(271 81% 56%); }
+  .vol-task-tag { display:inline-block; padding:0.2rem 0.55rem; border-radius:0.35rem; font-size:0.7rem; font-weight:500; background:hsl(var(--secondary)); color:hsl(var(--foreground)); border:1px solid hsl(var(--border)); }
+  .occ-bar { width:100%; height:10px; background:hsl(var(--secondary)); border-radius:9999px; overflow:hidden; margin:0.5rem 0; }
+  .occ-fill { height:100%; border-radius:9999px; }
+  .occ-fill.safe  { background:hsl(var(--success)); }
+  .occ-fill.warn  { background:hsl(var(--warning)); }
+  .occ-fill.danger{ background:hsl(var(--destructive)); }
+  .feature-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+  .feature-item { font-size:0.8rem; display:flex; justify-content:space-between; padding:0.35rem 0.5rem; background:hsl(var(--secondary)/0.5); border-radius:0.35rem; }
+  .feature-key { color:hsl(var(--muted-foreground)); }
+  .feature-val { font-weight:600; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if ml %}
+<div class="risk-banner {{ ml.risk }}">
+  <div>
+    <div class="risk-banner-title">
+      {% if ml.risk == "high" %}🚨{% elif ml.risk == "medium" %}⚠️{% else %}✅{% endif %}
+      Overflow Risk: {{ ml.risk|upper }}
+      <span style="font-size:0.8rem;font-weight:400;margin-left:0.5rem;">({{ ml.method }})</span>
+    </div>
+    <div style="font-size:0.85rem;color:hsl(var(--muted-foreground));margin-top:0.3rem;">Based on occupancy trend, supply status, and weather data.</div>
+  </div>
+  <div class="probability-circle {{ ml.risk }}">
+    {% widthratio ml.probability 1 100 %}%
+    <span style="font-size:0.6rem;font-weight:400;">prob</span>
+  </div>
+</div>
+{% endif %}
+
+<div class="detail-grid">
+  <!-- LEFT -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Shelter Information</div></div>
+      <div class="info-row"><span class="info-label">District</span><span class="info-value">{{ shelter.district }}</span></div>
+      <div class="info-row"><span class="info-label">Address</span><span class="info-value">{{ shelter.address }}</span></div>
+      <div class="info-row"><span class="info-label">Status</span>
+        <span class="badge {% if shelter.status == 'active' %}success{% elif shelter.status == 'full' %}danger{% else %}neutral{% endif %}">{{ shelter.status|upper }}</span>
+      </div>
+      <div class="info-row"><span class="info-label">Max Capacity</span><span class="info-value">{{ shelter.max_capacity }}</span></div>
+      <div class="info-row"><span class="info-label">Current Occupancy</span><span class="info-value">{{ shelter.current_occupancy }}</span></div>
+      <div class="info-row"><span class="info-label">Medical Support</span>
+        <span class="badge {% if shelter.has_medical %}success{% else %}neutral{% endif %}">{% if shelter.has_medical %}Available{% else %}Not Available{% endif %}</span>
+      </div>
+      <div class="info-row"><span class="info-label">Accessible</span>
+        <span class="badge {% if shelter.is_accessible %}success{% else %}neutral{% endif %}">{% if shelter.is_accessible %}Yes{% else %}No{% endif %}</span>
+      </div>
+      <div class="info-row"><span class="info-label">Manager</span><span class="info-value">{{ shelter.manager.full_name|default:"—" }}</span></div>
+      <div class="info-row"><span class="info-label">Contact</span><span class="info-value">{{ shelter.contact_phone|default:"—" }}</span></div>
+      <div style="margin-top:0.75rem;">
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:hsl(var(--muted-foreground));margin-bottom:0.25rem;">
+          <span>Occupancy</span><span>{{ shelter.occupancy_pct }}%</span>
+        </div>
+        <div class="occ-bar">
+          <div class="occ-fill {% if shelter.occupancy_pct >= 85 %}danger{% elif shelter.occupancy_pct >= 65 %}warn{% else %}safe{% endif %}" style="width:{{ shelter.occupancy_pct }}%"></div>
+        </div>
+      </div>
+    </div>
+
+    {% if supply %}
+    <div class="card">
+      <div class="card-header"><div class="card-title">Food & Water Estimation</div><div class="card-subtitle">Days remaining at current consumption rate</div></div>
+      <div class="supply-block">
+        {% if supply.food %}
+        <div class="supply-card">
+          <div class="supply-icon">🍽️</div>
+          <div class="supply-label">Food Supply</div>
+          <div class="supply-days {{ supply.food.status }}">{% if supply.food.days_remaining %}{{ supply.food.days_remaining }}d{% else %}No data{% endif %}</div>
+          {% if supply.food.quantity_available %}<div style="font-size:0.75rem;color:hsl(var(--muted-foreground));margin-top:0.25rem;">{{ supply.food.quantity_available }}kg · {{ supply.food.daily_usage }}kg/day</div>{% endif %}
+        </div>
+        {% endif %}
+        {% if supply.water %}
+        <div class="supply-card">
+          <div class="supply-icon">💧</div>
+          <div class="supply-label">Water Supply</div>
+          <div class="supply-days {{ supply.water.status }}">{% if supply.water.days_remaining %}{{ supply.water.days_remaining }}d{% else %}No data{% endif %}</div>
+          {% if supply.water.quantity_available %}<div style="font-size:0.75rem;color:hsl(var(--muted-foreground));margin-top:0.25rem;">{{ supply.water.quantity_available }}L · {{ supply.water.daily_usage }}L/day</div>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if workload %}
+    <div class="card">
+      <div class="card-header"><div class="card-title">Volunteer Workload</div></div>
+      <div class="info-row"><span class="info-label">Active Volunteers</span><span class="info-value">{{ workload.total_active_volunteers }}</span></div>
+      <div class="info-row"><span class="info-label">Volunteers Needed</span><span class="info-value">{{ workload.volunteers_needed }}</span></div>
+      <div class="info-row"><span class="info-label">Status</span>
+        <span class="badge {% if workload.status == 'adequate' %}success{% elif workload.status == 'overstaffed' %}warning{% else %}danger{% endif %}">{{ workload.status|cut:"_"|upper }}</span>
+      </div>
+      {% if workload.critical_task_gaps %}
+      <div style="margin-top:0.75rem;"><div style="font-size:0.8rem;font-weight:500;margin-bottom:0.4rem;">Critical Task Gaps:</div><div style="display:flex;flex-wrap:wrap;gap:0.35rem;">{% for gap in workload.critical_task_gaps %}<span class="badge danger">{{ gap }}</span>{% endfor %}</div></div>
+      {% endif %}
+      {% if workload.task_breakdown %}
+      <div style="margin-top:0.75rem;"><div style="font-size:0.8rem;font-weight:500;margin-bottom:0.4rem;">Task Breakdown:</div><div style="display:flex;flex-wrap:wrap;gap:0.35rem;">{% for task, count in workload.task_breakdown.items %}<span class="vol-task-tag">{{ task }}: {{ count }}</span>{% endfor %}</div></div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- RIGHT -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    {% if alerts %}
+    <div class="card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+        <div class="card-title" style="color:hsl(var(--destructive));">⚠️ Active Alerts ({{ alerts|length }})</div>
+        <button onclick="resolveAllAlerts(this)" class="btn btn-secondary btn-sm"
+                style="font-size:0.75rem;border-color:hsla(0,84%,60%,0.3);color:hsl(var(--destructive));">
+          🧹 Resolve All ({{ alerts|length }})
+        </button>
+      </div>
+
+      {% comment %}Show only first 5, rest hidden{% endcomment %}
+      {% for alert in alerts %}
+      <div class="alert-item {{ alert.alert_type }}" {% if forloop.counter > 5 %}style="display:none" data-hidden="1"{% endif %}>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:0.85rem;">{{ alert.get_alert_type_display }}</div>
+          <div style="font-size:0.8rem;color:hsl(var(--muted-foreground));margin-top:0.2rem;">{{ alert.message }}</div>
+          <div style="font-size:0.75rem;color:hsl(var(--muted-foreground));margin-top:0.25rem;">{{ alert.created_at|timesince }} ago</div>
+        </div>
+        <button onclick="resolveAlert({{ alert.id }}, this)" class="btn btn-success btn-sm">Resolve</button>
+      </div>
+      {% endfor %}
+
+      {% if alerts|length > 5 %}
+      <div style="text-align:center;padding:0.5rem 0;">
+        <button onclick="toggleAlerts(this)" class="btn btn-secondary btn-sm">
+          Show all {{ alerts|length }} alerts ↓
+        </button>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if ml and ml.features %}
+    <div class="card">
+      <div class="card-header"><div class="card-title">ML Feature Values</div><div class="card-subtitle">Inputs used for overflow prediction</div></div>
+      <div class="feature-grid">
+        {% for key, val in ml.features.items %}
+        <div class="feature-item">
+          <span class="feature-key">{{ key|cut:"_" }}</span>
+          <span class="feature-val">{% if val == True %}Yes{% elif val == False %}No{% else %}{{ val|floatformat:1 }}{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Status Update History</div><div class="card-subtitle">Last 20 updates</div></div>
+      {% if history %}
+      {% for h in history %}
+      <div class="history-row">
+        <div style="flex:1;"><span style="font-weight:600;">{{ h.current_occupancy }} ppl</span><span style="color:hsl(var(--muted-foreground));margin-left:0.5rem;font-size:0.8rem;">by {{ h.updated_by }}</span></div>
+        <span class="badge {% if h.food_status == 'ok' %}success{% elif h.food_status == 'low' %}warning{% else %}danger{% endif %}">🍽 {{ h.food_status }}</span>
+        <span class="badge {% if h.water_status == 'ok' %}success{% elif h.water_status == 'low' %}warning{% else %}danger{% endif %}">💧 {{ h.water_status }}</span>
+        <span style="font-size:0.75rem;color:hsl(var(--muted-foreground));">{{ h.updated_at|timesince }} ago</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">No status updates yet.</div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Volunteers ({{ volunteers|length }})</div></div>
+      {% if volunteers %}
+      {% for v in volunteers %}
+      <div class="history-row">
+        <div style="flex:1;"><span style="font-weight:500;">{{ v.name }}</span><span class="vol-task-tag" style="margin-left:0.4rem;">{{ v.task }}</span></div>
+        <span class="badge {% if v.status == 'active' %}success{% elif v.status == 'resting' %}warning{% else %}neutral{% endif %}">{{ v.status }}</span>
+        {% if v.phone %}<span style="font-size:0.75rem;color:hsl(var(--muted-foreground));">{{ v.phone }}</span>{% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">No volunteers registered yet.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+async function resolveAlert(alertId, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  const resp = await fetch(`/shelters/admin/shelters/alerts/${alertId}/resolve/`, {
+    method: 'POST', headers: { 'X-CSRFToken': CSRF }
+  });
+  if (resp.ok) {
+    const row = btn.closest('.alert-item');
+    row.style.transition = 'opacity 0.3s';
+    row.style.opacity = '0';
+    setTimeout(() => row.remove(), 300);
+    // Update counter
+    const counter = document.querySelector('.card-title[style*="destructive"]');
+    if (counter) {
+      const remaining = document.querySelectorAll('.alert-item').length - 1;
+      counter.textContent = remaining > 0 ? `⚠️ Active Alerts (${remaining})` : '✅ No Active Alerts';
+    }
+  } else {
+    btn.textContent = 'Error'; btn.disabled = false;
+  }
+}
+
+async function resolveAllAlerts(btn) {
+  if (!confirm('Resolve all active alerts for this shelter?')) return;
+  btn.disabled = true; btn.textContent = '...';
+  const formData = new FormData();
+  formData.append('shelter_id', '{{ shelter.id }}');
+  formData.append('csrfmiddlewaretoken', CSRF);
+  const resp = await fetch('/shelters/admin/shelters/alerts/resolve-all/', {
+    method: 'POST', body: formData
+  });
+  if (resp.ok) {
+    const data = await resp.json();
+    // Remove all alert items with animation
+    document.querySelectorAll('.alert-item').forEach(el => {
+      el.style.transition = 'opacity 0.2s';
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 200);
+    });
+    const card = btn.closest('.card');
+    setTimeout(() => {
+      card.innerHTML = '<div class="card-header"><div class="card-title" style="color:hsl(var(--success));">✅ All alerts resolved</div></div>';
+    }, 350);
+    console.log(`[ALERTS] Resolved ${data.resolved_count} alerts`);
+  } else {
+    btn.textContent = 'Error'; btn.disabled = false;
+  }
+}
+
+function toggleAlerts(btn) {
+  const hidden = document.querySelectorAll('[data-hidden="1"]');
+  const isCollapsed = hidden[0]?.style.display === 'none';
+  hidden.forEach(el => el.style.display = isCollapsed ? 'flex' : 'none');
+  btn.textContent = isCollapsed
+    ? `Show fewer ↑`
+    : `Show all ${document.querySelectorAll('.alert-item').length} alerts ↓`;
+}
+</script>
+{% endblock %}

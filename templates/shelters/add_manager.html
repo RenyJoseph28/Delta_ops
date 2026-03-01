@@ -1,0 +1,74 @@
+{% extends "super_admin/base.html" %}
+{% block title %}Add Manager — Delta Ops{% endblock %}
+{% block page_title %}Add Shelter Manager{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'admin_manage_managers' %}" class="btn btn-secondary">
+  <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:900px){ .form-grid{grid-template-columns:1fr;} }
+  .form-group { display:flex; flex-direction:column; gap:0.4rem; }
+  .form-label { font-size:0.875rem; font-weight:500; }
+  .form-control {
+    padding:0.575rem 0.875rem; border:1px solid hsl(var(--border)); border-radius:0.5rem;
+    font-size:0.875rem; font-family:inherit; background:white; width:100%;
+    transition:border-color 0.2s,box-shadow 0.2s;
+  }
+  .form-control:focus { outline:none; border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsla(217,91%,60%,0.1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+  <div class="card-header">
+    <div class="card-title">Manager Details</div>
+    <div class="card-subtitle">The manager will use these credentials to log in to the shelter portal.</div>
+  </div>
+
+  <form method="POST">
+    {% csrf_token %}
+    <div class="form-grid" style="margin-bottom:1rem;">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" name="full_name" class="form-control" placeholder="e.g. Rajan Pillai" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Username *</label>
+        <input type="text" name="username" class="form-control" placeholder="e.g. rajan_p" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input type="password" name="password" class="form-control" placeholder="Minimum 8 characters" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input type="email" name="email" class="form-control" placeholder="manager@example.com" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input type="text" name="phone" class="form-control" placeholder="+91 XXXXX XXXXX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">District</label>
+        <select name="district" class="form-control">
+          <option value="">— All Districts —</option>
+          {% for d in districts %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;">
+      <button type="submit" class="btn btn-primary">
+        <i data-lucide="user-plus" style="width:16px;height:16px;"></i> Create Manager
+      </button>
+      <a href="{% url 'admin_manage_managers' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

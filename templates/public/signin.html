@@ -1,0 +1,143 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Sign In - Delta Ops{% endblock %}
+
+{% block content %}
+
+<style>
+.messages-container { margin-bottom: 1.5rem; }
+.alert { padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+.alert-error { background-color: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+.alert-success { background-color: rgba(34, 197, 94, 0.1); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.2); }
+.alert-icon { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+/* Portal access buttons */
+.portal-divider {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 1.5rem 0 1.25rem;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.8rem;
+}
+.portal-divider::before,
+.portal-divider::after {
+  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.15);
+}
+
+.portal-links {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.portal-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  padding: 0.75rem 0.5rem; border-radius: 0.625rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+  text-decoration: none; font-size: 0.8rem; font-weight: 500;
+  transition: all 0.2s;
+  backdrop-filter: blur(4px);
+}
+.portal-btn:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.3);
+  color: white;
+  transform: translateY(-2px);
+}
+.portal-btn-icon { font-size: 1.5rem; }
+.portal-btn-label { font-size: 0.7rem; opacity: 0.7; margin-top: -0.1rem; }
+</style>
+
+<div class="auth-page">
+    <div class="auth-bg">
+        <img src="{% static 'images/flood-hero.jpg' %}" alt="Flood landscape" class="auth-bg-image">
+        <div class="auth-overlay"></div>
+    </div>
+
+    <div class="auth-container">
+        <div class="auth-card glass">
+            <a href="/" class="auth-logo">
+                <div class="logo-icon">
+                    <i data-lucide="waves" class="icon"></i>
+                </div>
+                <span class="logo-text">Delta Ops</span>
+            </a>
+
+            {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" role="alert">
+                        <i data-lucide="{% if message.tags == 'error' %}alert-circle{% elif message.tags == 'success' %}check-circle{% else %}info{% endif %}" class="alert-icon"></i>
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <h1 class="auth-title">Welcome Back</h1>
+            <p class="auth-subtitle">Sign in to access your flood monitoring dashboard</p>
+
+            <form class="auth-form" method="POST" action="{% url 'signin' %}">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i data-lucide="mail" class="label-icon"></i>
+                        Email Address
+                    </label>
+                    <input type="email" id="email" name="email" class="form-input"
+                           placeholder="Enter your email" value="{{ email|default:'' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i data-lucide="lock" class="label-icon"></i>
+                        Password
+                    </label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" class="form-input"
+                               placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                            <i data-lucide="eye" class="toggle-icon" id="passwordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i data-lucide="log-in" class="btn-icon"></i>
+                    Sign In
+                </button>
+            </form>
+
+            <!-- Other Portals -->
+            <div class="portal-divider">Other Portals</div>
+            <div class="portal-links">
+                <a href="{% url 'shelter_manager_login' %}" class="portal-btn">
+                    <span class="portal-btn-icon">🏠</span>
+                    Shelter Manager
+                    <span class="portal-btn-label">Staff Login</span>
+                </a>
+                <a href="{% url 'volunteer_login' %}" class="portal-btn">
+                    <span class="portal-btn-icon">🙋</span>
+                    Volunteer
+                    <span class="portal-btn-label">PIN Login</span>
+                </a>
+            </div>
+
+            <p class="auth-footer">
+                Don't have an account?
+                <a href="{% url 'signup' %}" class="auth-link">Create one</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+setTimeout(() => {
+    const messages = document.querySelector('.messages-container');
+    if (messages) messages.style.display = 'none';
+}, 4000);
+</script>
+
+{% endblock %}

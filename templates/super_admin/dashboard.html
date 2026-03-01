@@ -1,0 +1,449 @@
+<!-- Django Dashboard Template - super_admin/templates/super_admin/dashboard.html -->
+{% extends 'super_admin/base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+  <!-- Total Users Card -->
+  <div class="stat-card">
+    <div class="stat-card-header">
+      <div>
+        <p class="stat-title">Total Users</p>
+        <p class="stat-value">{{ total_users }}</p>
+      </div>
+      <div class="stat-icon-wrapper">
+        <i data-lucide="users"></i>
+      </div>
+    </div>
+    <div class="stat-footer">
+      <p class="stat-footer-label">Active Users</p>
+      <p class="stat-footer-value">{{ active_users }}</p>
+    </div>
+  </div>
+
+  <!-- Active Sessions Card -->
+  <!-- <div class="stat-card">
+    <div class="stat-card-header">
+      <div>
+        <p class="stat-title">Active Sessions</p>
+        <p class="stat-value">{{ active_sessions|default:"847" }}</p>
+        <div class="stat-trend up">
+          <span>↑ 8%</span>
+          <span class="stat-trend-label">vs last week</span>
+        </div>
+      </div>
+      <div class="stat-icon-wrapper">
+        <i data-lucide="activity"></i>
+      </div>
+    </div>
+  </div> -->
+
+  <!-- Districts Monitored Card -->
+  <div class="stat-card">
+    <div class="stat-card-header">
+      <div>
+        <p class="stat-title">Districts Monitored</p>
+        <p class="stat-value">14</p>
+        <div class="stat-trend up">
+          <span>All active</span>
+          <span class="stat-trend-label">Kerala coverage</span>
+        </div>
+      </div>
+      <div class="stat-icon-wrapper">
+        <i data-lucide="map-pin"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts Today Card -->
+  <div class="stat-card">
+    <div class="stat-card-header">
+      <div>
+        <p class="stat-title">Alerts Today</p>
+        <p class="stat-value">{{ alerts_today }}</p>
+        <div class="stat-trend neutral">
+          <span>Live</span>
+          <span class="stat-trend-label">email alerts sent</span>
+        </div>
+      </div>
+      <div class="stat-icon-wrapper">
+        <i data-lucide="bell"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Content Grid -->
+<div class="content-grid">
+  <!-- Weather Widget -->
+  <div class="weather-widget">
+    <div class="weather-header">
+      <div>
+        <h3 class="weather-title">
+          Weather — <span id="weather_district_name" class="weather-district-name">{{ default_district }}</span>
+        </h3>
+        <p class="weather-subtitle">Kerala District Weather Monitor</p>
+      </div>
+      <div class="weather-controls">
+        <select id="admin_district_select" class="district-select"></select>
+        <button id="fetch_weather_btn" class="refresh-btn">
+          <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i>
+          Refresh
+        </button>
+
+        <button id="send_alert_btn" class="refresh-btn danger">
+  <i data-lucide="bell"></i>
+  Send Alert
+</button>
+
+      </div>
+    </div>
+    
+    <div class="weather-content">
+      <div id="admin_weather_card">
+        {% if weather_data %}
+          <div class="weather-main-display">
+            <img src="{{ weather_data.icon_url }}" alt="{{ weather_data.description }}" class="weather-icon">
+            <div class="weather-temp-info">
+              <div class="weather-temp">{{ weather_data.temperature }}°C</div>
+              <div class="weather-desc">{{ weather_data.description }} • Feels like {{ weather_data.feels_like }}°C</div>
+            </div>
+          </div>
+          
+          <div class="weather-stats-grid">
+            <div class="weather-stat-item">
+              <div class="weather-stat-label">
+                <i data-lucide="droplets"></i>
+                Humidity
+              </div>
+              <div class="weather-stat-value">{{ weather_data.humidity }}%</div>
+            </div>
+            
+            <div class="weather-stat-item">
+              <div class="weather-stat-label">
+                <i data-lucide="wind"></i>
+                Wind
+              </div>
+              <div class="weather-stat-value">{{ weather_data.wind_speed }} m/s</div>
+            </div>
+            
+            <div class="weather-stat-item">
+              <div class="weather-stat-label">
+                <i data-lucide="cloud"></i>
+                Clouds
+              </div>
+              <div class="weather-stat-value">{{ weather_data.clouds }}%</div>
+            </div>
+            
+            <div class="weather-stat-item">
+              <div class="weather-stat-label">
+                <i data-lucide="cloud-rain"></i>
+                Rain
+              </div>
+              <div class="weather-stat-value">{{ weather_data.rain_probability }}%</div>
+            </div>
+            
+            <div class="weather-stat-item">
+              <div class="weather-stat-label">
+                <i data-lucide="eye"></i>
+                Visibility
+              </div>
+              <div class="weather-stat-value">{{ weather_data.visibility }} km</div>
+            </div>
+            
+            <div class="weather-stat-item">
+              <div class="weather-stat-label">
+                <i data-lucide="sunrise"></i>
+                Sunrise
+              </div>
+              <div class="weather-stat-value">{{ weather_data.sunrise }}</div>
+            </div>
+          </div>
+        {% else %}
+          <div class="weather-loading">Weather data unavailable</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- District Overview -->
+  <div class="district-overview">
+    <div class="district-header">
+      <div>
+        <h3 class="district-title">District Overview</h3>
+        <p class="district-subtitle">Real-time weather across Kerala</p>
+      </div>
+      <a href="#" class="view-all-link">View All →</a>
+    </div>
+    
+    <ul class="district-list">
+      {% for district in districts %}
+      <li class="district-item">
+        <div class="district-item-left">
+          <div class="district-icon-wrapper">
+            <i data-lucide="map-pin"></i>
+          </div>
+          <div>
+            <p class="district-name">{{ district.name }}</p>
+            <div class="district-meta">
+              <span class="district-meta-item">
+                <i data-lucide="thermometer"></i>
+                {{ district.temp }}°C
+              </span>
+              <span class="district-meta-item">
+                <i data-lucide="cloud-rain"></i>
+                {{ district.rain }}%
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="district-item-right">
+          <span class="status-badge {{ district.status }}">
+            {{ district.status|title }} Risk
+          </span>
+          <i data-lucide="trending-up" style="width:16px;height:16px;color:hsl(var(--muted-foreground));"></i>
+        </div>
+      </li>
+      {% empty %}
+      <!-- Fallback static data if no districts passed -->
+      <li class="district-item">
+        <div class="district-item-left">
+          <div class="district-icon-wrapper"><i data-lucide="map-pin"></i></div>
+          <div>
+            <p class="district-name">Thiruvananthapuram</p>
+            <div class="district-meta">
+              <span class="district-meta-item"><i data-lucide="thermometer"></i> 29°C</span>
+              <span class="district-meta-item"><i data-lucide="cloud-rain"></i> 45%</span>
+            </div>
+          </div>
+        </div>
+        <div class="district-item-right">
+          <span class="status-badge moderate">Moderate Risk</span>
+        </div>
+      </li>
+      <li class="district-item">
+        <div class="district-item-left">
+          <div class="district-icon-wrapper"><i data-lucide="map-pin"></i></div>
+          <div>
+            <p class="district-name">Ernakulam</p>
+            <div class="district-meta">
+              <span class="district-meta-item"><i data-lucide="thermometer"></i> 31°C</span>
+              <span class="district-meta-item"><i data-lucide="cloud-rain"></i> 30%</span>
+            </div>
+          </div>
+        </div>
+        <div class="district-item-right">
+          <span class="status-badge low">Low Risk</span>
+        </div>
+      </li>
+      <li class="district-item">
+        <div class="district-item-left">
+          <div class="district-icon-wrapper"><i data-lucide="map-pin"></i></div>
+          <div>
+            <p class="district-name">Kozhikode</p>
+            <div class="district-meta">
+              <span class="district-meta-item"><i data-lucide="thermometer"></i> 28°C</span>
+              <span class="district-meta-item"><i data-lucide="cloud-rain"></i> 65%</span>
+            </div>
+          </div>
+        </div>
+        <div class="district-item-right">
+          <span class="status-badge high">High Risk</span>
+        </div>
+      </li>
+      <li class="district-item">
+        <div class="district-item-left">
+          <div class="district-icon-wrapper"><i data-lucide="map-pin"></i></div>
+          <div>
+            <p class="district-name">Thrissur</p>
+            <div class="district-meta">
+              <span class="district-meta-item"><i data-lucide="thermometer"></i> 30°C</span>
+              <span class="district-meta-item"><i data-lucide="cloud-rain"></i> 40%</span>
+            </div>
+          </div>
+        </div>
+        <div class="district-item-right">
+          <span class="status-badge moderate">Moderate Risk</span>
+        </div>
+      </li>
+      <li class="district-item">
+        <div class="district-item-left">
+          <div class="district-icon-wrapper"><i data-lucide="map-pin"></i></div>
+          <div>
+            <p class="district-name">Kannur</p>
+            <div class="district-meta">
+              <span class="district-meta-item"><i data-lucide="thermometer"></i> 27°C</span>
+              <span class="district-meta-item"><i data-lucide="cloud-rain"></i> 70%</span>
+            </div>
+          </div>
+        </div>
+        <div class="district-item-right">
+          <span class="status-badge high">High Risk</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ========================================
+   Kerala Districts Data
+======================================== */
+const keralaDistricts = [
+  "Alappuzha", "Ernakulam", "Idukki", "Kannur", "Kasaragod", "Kollam",
+  "Kottayam", "Kozhikode", "Malappuram", "Palakkad", "Pathanamthitta",
+  "Thiruvananthapuram", "Thrissur", "Wayanad"
+];
+
+const select = document.getElementById("admin_district_select");
+const defaultDistrict = "{{ default_district|escapejs|default:'Thiruvananthapuram' }}";
+
+// Populate dropdown
+keralaDistricts.forEach(d => {
+  const opt = document.createElement("option");
+  opt.value = d;
+  opt.textContent = d;
+  if (d === defaultDistrict) opt.selected = true;
+  select.appendChild(opt);
+});
+
+/* ========================================
+   Weather Rendering
+======================================== */
+function renderWeather(data) {
+  const card = document.getElementById('admin_weather_card');
+  card.innerHTML = `
+    <div class="weather-main-display">
+      <img src="${data.icon_url}" alt="${data.description}" class="weather-icon">
+      <div class="weather-temp-info">
+        <div class="weather-temp">${data.temperature}°C</div>
+        <div class="weather-desc">${data.description} • Feels like ${data.feels_like}°C</div>
+      </div>
+    </div>
+    
+    <div class="weather-stats-grid">
+      <div class="weather-stat-item">
+        <div class="weather-stat-label">
+          <i data-lucide="droplets"></i>
+          Humidity
+        </div>
+        <div class="weather-stat-value">${data.humidity}%</div>
+      </div>
+      
+      <div class="weather-stat-item">
+        <div class="weather-stat-label">
+          <i data-lucide="wind"></i>
+          Wind
+        </div>
+        <div class="weather-stat-value">${data.wind_speed} m/s</div>
+      </div>
+      
+      <div class="weather-stat-item">
+        <div class="weather-stat-label">
+          <i data-lucide="cloud"></i>
+          Clouds
+        </div>
+        <div class="weather-stat-value">${data.clouds}%</div>
+      </div>
+      
+      <div class="weather-stat-item">
+        <div class="weather-stat-label">
+          <i data-lucide="cloud-rain"></i>
+          Rain
+        </div>
+        <div class="weather-stat-value">${data.rain_probability}%</div>
+      </div>
+      
+      <div class="weather-stat-item">
+        <div class="weather-stat-label">
+          <i data-lucide="eye"></i>
+          Visibility
+        </div>
+        <div class="weather-stat-value">${data.visibility} km</div>
+      </div>
+      
+      <div class="weather-stat-item">
+        <div class="weather-stat-label">
+          <i data-lucide="sunrise"></i>
+          Sunrise
+        </div>
+        <div class="weather-stat-value">${data.sunrise}</div>
+      </div>
+    </div>
+  `;
+  
+  // Reinitialize icons for dynamically added content
+  lucide.createIcons();
+}
+
+/* ========================================
+   Fetch Weather
+======================================== */
+async function fetchWeather(district) {
+  document.getElementById("weather_district_name").textContent = district;
+  
+  const card = document.getElementById('admin_weather_card');
+  card.innerHTML = '<div class="weather-loading"><i data-lucide="loader-2" class="loading-spinner" style="width:24px;height:24px;margin-bottom:0.5rem;"></i><br>Loading weather data...</div>';
+  lucide.createIcons();
+
+  try {
+    const res = await fetch("{% url 'admin_get_weather' %}?district=" + encodeURIComponent(district));
+    const data = await res.json();
+    if (data.error) throw new Error("Failed");
+    renderWeather(data);
+  } catch (e) {
+    card.innerHTML = `<div class="weather-error">Unable to fetch weather data. Please try again.</div>`;
+  }
+}
+
+/* ========================================
+   Event Listeners
+======================================== */
+// Initial fetch
+fetchWeather(select.value);
+
+// District change
+select.addEventListener("change", () => fetchWeather(select.value));
+
+// Refresh button
+document.getElementById("fetch_weather_btn").addEventListener("click", () => fetchWeather(select.value));
+
+// Reinitialize icons
+lucide.createIcons();
+
+document.getElementById("send_alert_btn").addEventListener("click", async () => {
+  const district = document.getElementById("admin_district_select").value;
+
+  if (!confirm(`Send weather alert to users in ${district}?`)) return;
+
+  try {
+    const res = await fetch("{% url 'send_manual_weather_alert' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: `district=${encodeURIComponent(district)}`
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert(data.message);
+    } else {
+      alert("Failed to send alert");
+    }
+  } catch (e) {
+    alert("Error sending alert");
+  }
+});
+
+
+</script>
+{% endblock %}

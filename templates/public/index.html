@@ -1,0 +1,70 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <!-- Background Image -->
+    <div class="hero-bg">
+        <img src="{% static 'images/flood-hero.jpg' %}" alt="Flood landscape" class="hero-bg-image">
+        <div class="hero-overlay"></div>
+    </div>
+
+    <!-- Animated Particles -->
+    <div class="particles">
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
+    </div>
+
+    <!-- Hero Content -->
+    <div class="hero-content">
+        <div class="hero-badge glass">
+            <i data-lucide="shield-check" class="badge-icon"></i>
+            <span>Advanced Flood Protection System</span>
+        </div>
+
+        <h1 class="hero-title">
+            Protect Your <span class="text-gradient">Community</span><br>
+            From Floods
+        </h1>
+
+        <p class="hero-subtitle">
+            Real-time flood monitoring, early warning systems, and intelligent
+            location tracking to keep communities safe during flood events.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">
+                <i data-lucide="shield" class="btn-icon"></i>
+                Get Started
+            </a>
+            <a href="{% url 'signin' %}" class="btn btn-outline btn-lg">
+                <i data-lucide="log-in" class="btn-icon"></i>
+                Sign In
+            </a>
+        </div>
+
+        <!-- Feature Pills -->
+        <div class="feature-pills">
+            <div class="feature-pill glass">
+                <i data-lucide="activity" class="pill-icon"></i>
+                <span>Real-time Monitoring</span>
+            </div>
+            <div class="feature-pill glass">
+                <i data-lucide="bell" class="pill-icon"></i>
+                <span>Early Warnings</span>
+            </div>
+            <div class="feature-pill glass">
+                <i data-lucide="map-pin" class="pill-icon"></i>
+                <span>Location Tracking</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <!-- <div class="scroll-indicator">
+        <i data-lucide="chevron-down" class="scroll-icon"></i>
+    </div> -->
+</section>
+{% endblock %}

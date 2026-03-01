@@ -1,0 +1,657 @@
+{% extends 'user/index.html' %}
+
+
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .dashboard-header {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .welcome-text h1 {
+        color: white;
+        font-size: 1.25rem;
+        margin-bottom: 0.125rem;
+        font-weight: 600;
+    }
+
+    .welcome-text p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.8rem;
+    }
+
+    .logout-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 0.4rem 0.875rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        transition: all 0.3s;
+        font-size: 0.8rem;
+    }
+
+    .logout-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .logout-btn i {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .user-info-grid {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .info-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .info-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .info-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .info-icon i {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    .info-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .info-title {
+        font-size: 0.7rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.125rem;
+    }
+
+    .info-value {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1f2937;
+        word-break: break-word;
+        line-height: 1.3;
+    }
+
+    .info-label {
+        font-size: 0.65rem;
+        color: #9ca3af;
+        margin-top: 0.125rem;
+    }
+
+    .messages-container {
+        margin-top: 1rem;
+    }
+
+    .alert {
+        padding: 0.625rem 0.875rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .alert-error {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .alert-success {
+        background-color: rgba(34, 197, 94, 0.1);
+        color: #ffffff;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .alert-icon {
+        width: 1rem;
+        height: 1rem;
+        flex-shrink: 0;
+    }
+
+    .weather-section {
+        margin-top: 1rem;
+    }
+
+    .weather-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .weather-title {
+        color: white;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .refresh-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.875rem;
+    }
+
+    .refresh-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .refresh-btn i {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .weather-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .weather-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .weather-overview {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    .weather-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        flex-shrink: 0;
+    }
+
+    .weather-main {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .weather-temp {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1;
+    }
+
+    .weather-desc {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+
+    .weather-feels-like {
+        color: #9ca3af;
+        font-size: 0.8rem;
+    }
+
+    .weather-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.875rem;
+    }
+
+    .weather-stat {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .stat-unit {
+        font-size: 0.8rem;
+        color: #9ca3af;
+        margin-left: 0.25rem;
+    }
+
+    .weather-timestamp {
+        margin-top: 0.875rem;
+        padding-top: 0.875rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .weather-detail-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 1rem;
+        padding: 1.25rem;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.875rem;
+    }
+
+    .detail-item {
+        text-align: center;
+        padding: 0.875rem;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 0.75rem;
+    }
+
+    .detail-icon {
+        width: 1.75rem;
+        height: 1.75rem;
+        margin: 0 auto 0.5rem;
+        color: #667eea;
+    }
+
+    .detail-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .detail-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+
+    .rain-probability {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.25rem;
+        border-radius: 1rem;
+    }
+
+    .rain-probability .stat-value {
+        color: white;
+        font-size: 2.5rem;
+    }
+
+    .weather-alert {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        color: #dc2626;
+        padding: 0.875rem;
+        border-radius: 0.75rem;
+        margin-top: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .no-weather-data {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 1rem;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    @media (max-width: 1024px) {
+        .weather-grid {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 1rem;
+        }
+
+        .dashboard-header {
+            padding: 1rem;
+        }
+
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .welcome-text h1 {
+            font-size: 1.25rem;
+        }
+
+        .user-info-grid {
+            flex-direction: column;
+        }
+
+        .info-card {
+            padding: 0.875rem;
+            min-width: 100%;
+        }
+
+        .info-value {
+            font-size: 0.875rem;
+        }
+
+        .weather-title {
+            font-size: 1.125rem;
+        }
+
+        .weather-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .weather-temp {
+            font-size: 2rem;
+        }
+
+        .detail-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .rain-probability .stat-value {
+            font-size: 2.5rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-container {
+            padding: 0.75rem;
+        }
+
+        .dashboard-header {
+            padding: 0.875rem;
+        }
+
+        .welcome-text h1 {
+            font-size: 1.125rem;
+        }
+
+        .info-card {
+            padding: 0.75rem;
+        }
+
+        .info-icon {
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .info-icon i {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .weather-card {
+            padding: 1rem;
+        }
+
+        .weather-temp {
+            font-size: 1.75rem;
+        }
+
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="welcome-text">
+                <h1>Welcome, {{ user_name }}!</h1>
+                <p>Here's your account information</p>
+            </div>
+            <a href="{% url 'signout' %}" class="logout-btn">
+                <i data-lucide="log-out"></i>
+                Logout
+            </a>
+        </div>
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" role="alert">
+                <i data-lucide="{% if message.tags == 'error' %}alert-circle{% elif message.tags == 'success' %}check-circle{% else %}info{% endif %}" class="alert-icon"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="user-info-grid">
+        <div class="info-card">
+            <div class="info-icon">
+                <i data-lucide="user"></i>
+            </div>
+            <div class="info-content">
+                <div class="info-title">Full Name</div>
+                <div class="info-value">{{ user_name }}</div>
+                <div class="info-label">Registered User</div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon">
+                <i data-lucide="mail"></i>
+            </div>
+            <div class="info-content">
+                <div class="info-title">Email Address</div>
+                <div class="info-value" style="font-size: 0.9rem;">{{ user_email }}</div>
+                <div class="info-label">Primary Contact</div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon">
+                <i data-lucide="map-pin"></i>
+            </div>
+            <div class="info-content">
+                <div class="info-title">District</div>
+                <div class="info-value">{{ user_district }}</div>
+                <div class="info-label">Kerala, India</div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon">
+                <i data-lucide="shield-check"></i>
+            </div>
+            <div class="info-content">
+                <div class="info-title">Account Status</div>
+                <div class="info-value" style="color: #16a34a;">Active</div>
+                <div class="info-label">All systems operational</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="weather-section">
+        <div class="weather-header">
+            <h2 class="weather-title">Current Weather in {{ user_district }}</h2>
+            <button class="refresh-btn" onclick="location.reload()">
+                <i data-lucide="refresh-cw"></i>
+                Refresh
+            </button>
+        </div>
+
+        {% if weather_data %}
+        <div class="weather-grid">
+            <div class="weather-card">
+                <div class="weather-overview">
+                    <img src="{{ weather_data.icon_url }}" alt="{{ weather_data.description }}" class="weather-icon">
+                    <div class="weather-main">
+                        <div class="weather-temp">{{ weather_data.temperature }}°C</div>
+                        <div class="weather-desc">{{ weather_data.description }}</div>
+                        <div class="weather-feels-like">Feels like {{ weather_data.feels_like }}°C</div>
+                    </div>
+                </div>
+
+                <div class="weather-stats">
+                    <div class="weather-stat">
+                        <div class="stat-label">Humidity</div>
+                        <div class="stat-value">{{ weather_data.humidity }}<span class="stat-unit">%</span></div>
+                    </div>
+                    <div class="weather-stat">
+                        <div class="stat-label">Wind</div>
+                        <div class="stat-value">{{ weather_data.wind_speed }}<span class="stat-unit">km/h</span></div>
+                        <div class="stat-label" style="font-size: 0.7rem;">{{ weather_data.wind_direction }}</div>
+                    </div>
+                    <div class="weather-stat">
+                        <div class="stat-label">Pressure</div>
+                        <div class="stat-value">{{ weather_data.pressure }}<span class="stat-unit">hPa</span></div>
+                    </div>
+                    <div class="weather-stat">
+                        <div class="stat-label">Clouds</div>
+                        <div class="stat-value">{{ weather_data.clouds }}<span class="stat-unit">%</span></div>
+                    </div>
+                </div>
+
+                <div class="weather-timestamp">
+                    <div class="stat-label">Last Updated</div>
+                    <div class="stat-value">{{ weather_data.timestamp }}</div>
+                </div>
+            </div>
+
+            <div class="weather-card rain-probability">
+                <div class="weather-stat">
+                    <div class="stat-label" style="color: rgba(255, 255, 255, 0.8);">Rain Probability</div>
+                    <div class="stat-value">{{ weather_data.rain_probability }}%</div>
+                    <div class="stat-label" style="color: rgba(255, 255, 255, 0.8); margin-top: 1rem;">
+                        {% if weather_data.rain_1h > 0 %}
+                        Currently raining: {{ weather_data.rain_1h }}mm in last hour
+                        {% else %}
+                        No rain in last hour
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="weather-detail-card">
+                <h3 style="color: #1f2937; margin-bottom: 1rem; font-size: 1.25rem;">Weather Details</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <i data-lucide="eye" class="detail-icon"></i>
+                        <div class="detail-value">
+                            {% if weather_data.visibility %}{{ weather_data.visibility }} km{% else %}N/A{% endif %}
+                        </div>
+                        <div class="detail-label">Visibility</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <i data-lucide="sunrise" class="detail-icon"></i>
+                        <div class="detail-value">{{ weather_data.sunrise }}</div>
+                        <div class="detail-label">Sunrise</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <i data-lucide="sunset" class="detail-icon"></i>
+                        <div class="detail-value">{{ weather_data.sunset }}</div>
+                        <div class="detail-label">Sunset</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <i data-lucide="cloud-rain" class="detail-icon"></i>
+                        <div class="detail-value">{{ weather_data.rain_1h }} mm</div>
+                        <div class="detail-label">Rain (1h)</div>
+                    </div>
+                </div>
+
+                {% if weather_data.main_weather == 'Rain' or weather_data.main_weather == 'Thunderstorm' or weather_data.main_weather == 'Drizzle' %}
+                <div class="weather-alert">
+                    <i data-lucide="alert-triangle"></i>
+                    <div>
+                        <strong>Weather Alert:</strong> {{ weather_data.description }} in your area.
+                        {% if weather_data.main_weather == 'Thunderstorm' %}Stay indoors if possible.{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="no-weather-data">
+            <i data-lucide="cloud-off" style="width: 3rem; height: 3rem; color: #9ca3af; margin-bottom: 1rem;"></i>
+            <h3 style="color: #6b7280; margin-bottom: 0.5rem;">Weather Data Unavailable</h3>
+            <p style="color: #9ca3af;">Unable to fetch current weather data for {{ user_district }}.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+</script>
+{% endblock %}

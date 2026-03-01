@@ -1,0 +1,247 @@
+{% extends "shelters/manager_base.html" %}
+{% block title %}Volunteers — {{ shelter.name }}{% endblock %}
+{% block page_title %}Volunteers — {{ shelter.name }}{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'manager_shelter_detail' shelter.id %}" class="btn btn-secondary">
+  <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to Shelter
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .vol-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:900px){ .vol-grid{ grid-template-columns:1fr; } }
+
+  .vol-card {
+    background:hsl(var(--card)); border-radius:0.875rem;
+    border:1px solid hsl(var(--border)); padding:1rem;
+    display:flex; align-items:flex-start; gap:0.875rem;
+    transition:all 0.2s;
+  }
+  .vol-card:hover { box-shadow:0 4px 12px rgba(0,0,0,0.07); transform:translateY(-1px); }
+
+  .vol-avatar {
+    width:42px; height:42px; border-radius:50%;
+    background:linear-gradient(135deg,hsl(217 91% 60%),hsl(271 81% 56%));
+    color:white; font-weight:700; font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+
+  .vol-info { flex:1; min-width:0; }
+  .vol-name { font-weight:600; font-size:0.95rem; }
+  .vol-meta { font-size:0.78rem; color:hsl(var(--muted-foreground)); margin-top:0.15rem; }
+
+  .vol-actions { display:flex; gap:0.4rem; margin-top:0.6rem; flex-wrap:wrap; align-items:center; }
+
+  .task-select, .status-select {
+    padding:0.3rem 0.6rem; border:1px solid hsl(var(--border));
+    border-radius:0.4rem; font-size:0.78rem; font-family:inherit;
+    background:hsl(var(--secondary)); cursor:pointer;
+  }
+  .task-select:focus, .status-select:focus { outline:none; border-color:hsl(var(--primary)); }
+
+  .save-btn {
+    padding:0.3rem 0.75rem; border-radius:0.4rem; border:none;
+    background:hsl(var(--primary)); color:white;
+    font-size:0.78rem; font-family:inherit; cursor:pointer;
+    transition:all 0.15s;
+  }
+  .save-btn:hover { opacity:0.85; }
+  .save-btn.saved { background:hsl(var(--success)); }
+
+  /* Add volunteer form */
+  .add-form { background:hsl(var(--card)); border-radius:0.875rem; border:1px solid hsl(var(--border)); padding:1.25rem; margin-bottom:1.25rem; border-top:3px solid hsl(var(--primary)); }
+  .add-form-title { font-weight:700; font-size:1rem; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; }
+
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:0.75rem; margin-bottom:0.875rem; }
+  .form-group { display:flex; flex-direction:column; gap:0.3rem; }
+  .form-label { font-size:0.8rem; font-weight:500; }
+  .form-control {
+    padding:0.5rem 0.75rem; border:1px solid hsl(var(--border));
+    border-radius:0.5rem; font-size:0.875rem; font-family:inherit;
+    background:white; width:100%;
+  }
+  .form-control:focus { outline:none; border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsla(217,91%,60%,0.1); }
+
+  /* Summary bar */
+  .summary-bar {
+    display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.25rem;
+  }
+  .summary-chip {
+    background:hsl(var(--card)); border:1px solid hsl(var(--border));
+    border-radius:0.625rem; padding:0.5rem 1rem;
+    font-size:0.82rem; display:flex; flex-direction:column; gap:0.1rem;
+    min-width:100px;
+  }
+  .summary-chip-label { color:hsl(var(--muted-foreground)); font-size:0.72rem; }
+  .summary-chip-value { font-weight:700; font-size:1.1rem; }
+
+  .empty-vols { text-align:center; padding:3rem; color:hsl(var(--muted-foreground)); }
+  .empty-vols-icon { font-size:3rem; margin-bottom:0.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  {% for msg in messages %}
+  <div style="background:#dcfce7;border:1px solid #bbf7d0;color:#166534;padding:0.625rem 1rem;border-radius:0.5rem;margin-bottom:1rem;font-size:0.875rem;">✅ {{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<!-- Summary -->
+<div class="summary-bar">
+  <div class="summary-chip">
+    <span class="summary-chip-label">Total Volunteers</span>
+    <span class="summary-chip-value">{{ volunteers|length }}</span>
+  </div>
+  <div class="summary-chip">
+    <span class="summary-chip-label">Active</span>
+    <span class="summary-chip-value" style="color:hsl(var(--success));">
+      {{ volunteers|length }}
+    </span>
+  </div>
+  <div class="summary-chip">
+    <span class="summary-chip-label">Shelter Capacity</span>
+    <span class="summary-chip-value">{{ shelter.current_occupancy }} / {{ shelter.max_capacity }}</span>
+  </div>
+</div>
+
+<!-- Add Volunteer Form -->
+<div class="add-form">
+  <div class="add-form-title">
+    <i data-lucide="user-plus" style="width:18px;height:18px;color:hsl(var(--primary));"></i>
+    Add New Volunteer
+  </div>
+  <form method="POST" action="{% url 'manager_add_volunteer' shelter.id %}">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" name="name" class="form-control" placeholder="Volunteer name" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input type="text" name="phone" class="form-control" placeholder="+91 XXXXX XXXXX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">6-Digit PIN *</label>
+        <input type="number" name="pin" class="form-control" placeholder="e.g. 123456"
+               minlength="6" maxlength="6" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Task *</label>
+        <select name="task" class="form-control">
+          {% for val, label in task_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Shift Start</label>
+        <input type="time" name="shift_start" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Shift End</label>
+        <input type="time" name="shift_end" class="form-control">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i data-lucide="plus" style="width:15px;height:15px;"></i> Add Volunteer
+    </button>
+  </form>
+</div>
+
+<!-- Volunteer List -->
+{% if volunteers %}
+<div style="font-weight:700;font-size:1rem;margin-bottom:0.75rem;">
+  Current Volunteers ({{ volunteers|length }})
+</div>
+<div class="vol-grid">
+  {% for v in volunteers %}
+  <div class="vol-card">
+    <div class="vol-avatar">{{ v.name|slice:":1"|upper }}</div>
+    <div class="vol-info">
+      <div class="vol-name">{{ v.name }}</div>
+      <div class="vol-meta">
+        {% if v.phone %}📞 {{ v.phone }} &nbsp;·&nbsp; {% endif %}
+        🔑 PIN: {{ v.pin }}
+        {% if v.shift_start and v.shift_end %}
+          &nbsp;·&nbsp; ⏰ {{ v.shift_start|time:"H:i" }}–{{ v.shift_end|time:"H:i" }}
+        {% endif %}
+      </div>
+
+      <div class="vol-actions">
+        <!-- Task selector -->
+        <select class="task-select" id="task-{{ v.id }}">
+          {% for val, label in task_choices %}
+          <option value="{{ val }}" {% if v.task == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- Status selector -->
+        <select class="status-select" id="status-{{ v.id }}">
+          <option value="active"   {% if v.status == "active" %}selected{% endif %}>🟢 Active</option>
+          <option value="resting"  {% if v.status == "resting" %}selected{% endif %}>🟡 Resting</option>
+          <option value="off_duty" {% if v.status == "off_duty" %}selected{% endif %}>⚪ Off Duty</option>
+        </select>
+
+        <button class="save-btn" onclick="saveVolunteer({{ v.id }}, this)">Save</button>
+      </div>
+    </div>
+
+    <!-- Current status badge -->
+    <span class="badge {% if v.status == 'active' %}success{% elif v.status == 'resting' %}warning{% else %}neutral{% endif %}"
+          style="flex-shrink:0;">
+      {{ v.status }}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-vols">
+  <div class="empty-vols-icon">🙋</div>
+  <div style="font-weight:600;margin-bottom:0.4rem;">No volunteers yet</div>
+  <div style="font-size:0.875rem;">Add the first volunteer using the form above.</div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function saveVolunteer(volId, btn) {
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  const task   = document.getElementById(`task-${volId}`).value;
+  const status = document.getElementById(`status-${volId}`).value;
+
+  const formData = new FormData();
+  formData.append('task',   task);
+  formData.append('status', status);
+  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  const resp = await fetch(`/shelters/manager/volunteer/${volId}/update/`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (resp.ok) {
+    btn.textContent = '✓ Saved';
+    btn.classList.add('saved');
+    setTimeout(() => {
+      btn.textContent = 'Save';
+      btn.classList.remove('saved');
+      btn.disabled = false;
+    }, 2000);
+  } else {
+    btn.textContent = 'Error';
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

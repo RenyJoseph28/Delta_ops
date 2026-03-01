@@ -1,0 +1,452 @@
+{% extends "super_admin/base.html" %}
+{% block title %}Evacuation Routing — Delta Ops{% endblock %}
+{% block page_title %}Evacuation Routing{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Layout */
+  .page-grid { display:grid; grid-template-columns:380px 1fr; gap:1.25rem; align-items:start; }
+  @media(max-width:1100px){ .page-grid{ grid-template-columns:1fr; } }
+
+  /* Search panel */
+  .search-panel { background:hsl(var(--card)); border-radius:1rem; border:1px solid hsl(var(--border)); overflow:hidden; }
+  .search-panel-header { padding:1rem 1.25rem; border-bottom:1px solid hsl(var(--border)); background:linear-gradient(135deg,hsla(217,91%,60%,0.06),hsla(271,81%,56%,0.04)); }
+  .search-panel-body { padding:1.25rem; }
+
+  .form-group { display:flex; flex-direction:column; gap:0.35rem; margin-bottom:0.875rem; }
+  .form-label { font-size:0.82rem; font-weight:600; color:hsl(var(--foreground)); }
+  .form-hint  { font-size:0.72rem; color:hsl(var(--muted-foreground)); }
+  .form-control {
+    padding:0.55rem 0.875rem; border:1px solid hsl(var(--border)); border-radius:0.5rem;
+    font-size:0.875rem; font-family:inherit; background:white; width:100%;
+    transition:border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-control:focus { outline:none; border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsla(217,91%,60%,0.1); }
+
+  /* Place search */
+  .place-search-wrapper { position:relative; }
+  .place-results {
+    position:absolute; top:100%; left:0; right:0; z-index:200;
+    background:white; border:1px solid hsl(var(--border)); border-radius:0.5rem;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;
+    display:none;
+  }
+  .place-result-item {
+    padding:0.6rem 0.875rem; cursor:pointer; font-size:0.82rem; border-bottom:1px solid hsl(var(--border));
+    display:flex; align-items:flex-start; gap:0.5rem;
+  }
+  .place-result-item:last-child { border:none; }
+  .place-result-item:hover { background:hsl(var(--secondary)); }
+  .place-result-name { font-weight:500; }
+  .place-result-addr { font-size:0.72rem; color:hsl(var(--muted-foreground)); margin-top:0.1rem; }
+
+  /* Selected location chip */
+  .selected-loc {
+    background:hsla(142,76%,36%,0.08); border:1px solid hsla(142,76%,36%,0.2);
+    border-radius:0.5rem; padding:0.6rem 0.875rem;
+    font-size:0.8rem; display:none; margin-bottom:0.875rem;
+  }
+  .selected-loc.visible { display:block; }
+  .selected-loc-name { font-weight:600; color:hsl(var(--success)); }
+  .selected-loc-coords { font-size:0.72rem; color:hsl(var(--muted-foreground)); margin-top:0.1rem; font-family:monospace; }
+
+  /* District quick buttons */
+  .district-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; margin-top:0.5rem; }
+  .district-btn {
+    padding:0.35rem 0.5rem; border:1px solid hsl(var(--border)); border-radius:0.4rem;
+    background:hsl(var(--secondary)); font-size:0.72rem; font-weight:500;
+    cursor:pointer; font-family:inherit; text-align:left; transition:all 0.15s;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .district-btn:hover { background:hsl(210 40% 90%); border-color:hsl(var(--primary)); }
+  .district-btn.active { background:hsla(217,91%,60%,0.1); border-color:hsl(var(--primary)); color:hsl(var(--primary)); }
+
+  /* Map */
+  #routeMap { height:420px; border-radius:0.875rem; border:1px solid hsl(var(--border)); }
+  .map-hint { font-size:0.78rem; color:hsl(var(--muted-foreground)); margin-top:0.4rem; text-align:center; }
+
+  /* Results */
+  .reco-cards { display:flex; flex-direction:column; gap:0.875rem; margin-top:1.25rem; }
+  .reco-card {
+    background:hsl(var(--card)); border-radius:0.875rem; border:1px solid hsl(var(--border));
+    overflow:hidden; animation:slideUp 0.3s ease-out forwards; opacity:0;
+    transition:box-shadow 0.2s, transform 0.2s;
+  }
+  .reco-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+  .reco-card:nth-child(1){ animation-delay:0ms }
+  .reco-card:nth-child(2){ animation-delay:100ms }
+  .reco-card:nth-child(3){ animation-delay:200ms }
+  @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .reco-card-inner { display:grid; grid-template-columns:auto 1fr auto; gap:1rem; padding:1rem; align-items:center; }
+  .rank-badge {
+    width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:1rem; flex-shrink:0;
+  }
+  .rank-1 { background:linear-gradient(135deg,#ffd700,#ffb300); color:#7a4f00; }
+  .rank-2 { background:linear-gradient(135deg,#e0e0e0,#bdbdbd); color:#424242; }
+  .rank-3 { background:linear-gradient(135deg,#d4a574,#bf8650); color:#5d2e00; }
+
+  .reco-name { font-weight:700; font-size:0.95rem; }
+  .reco-dist { font-size:0.78rem; color:hsl(var(--muted-foreground)); }
+
+  .pills { display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.4rem; }
+  .pill { padding:0.15rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:500; border:1px solid; }
+  .pill.blue   { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+  .pill.green  { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+  .pill.orange { background:#fff7ed; color:#9a3412; border-color:#fdba74; }
+  .pill.red    { background:#fef2f2; color:#991b1b; border-color:#fca5a5; }
+
+  .occ-row { display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:0.2rem; }
+  .occ-bar { width:100%; height:6px; background:hsl(var(--secondary)); border-radius:9999px; overflow:hidden; }
+  .occ-fill { height:100%; border-radius:9999px; }
+  .occ-fill.safe  { background:hsl(var(--success)); }
+  .occ-fill.warn  { background:hsl(var(--warning)); }
+  .occ-fill.danger{ background:hsl(var(--destructive)); }
+
+  .reco-actions { display:flex; flex-direction:column; gap:0.4rem; align-items:flex-end; flex-shrink:0; }
+  .score-chip { text-align:center; font-size:0.7rem; color:hsl(var(--muted-foreground)); }
+  .score-num { font-size:1.1rem; font-weight:700; color:hsl(var(--primary)); }
+
+  .empty-reco { text-align:center; padding:3rem; background:hsl(var(--card)); border-radius:0.875rem; border:1px solid hsl(var(--border)); margin-top:1rem; }
+  .loading-spinner { display:none; text-align:center; padding:2rem; color:hsl(var(--muted-foreground)); }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+{% endblock %}
+
+{% block content %}
+<div class="page-grid">
+
+  <!-- LEFT: Search Panel -->
+  <div>
+    <div class="search-panel">
+      <div class="search-panel-header">
+        <div style="font-weight:700;font-size:1rem;">🗺️ Find Nearest Safe Shelter</div>
+        <div style="font-size:0.78rem;color:hsl(var(--muted-foreground));margin-top:0.2rem;">
+          Search by place name or click on the map to set origin
+        </div>
+      </div>
+      <div class="search-panel-body">
+
+        <!-- Place name search -->
+        <div class="form-group">
+          <label class="form-label">📍 Search Location / Address</label>
+          <div class="place-search-wrapper">
+            <input type="text" id="placeSearch" class="form-control"
+                   placeholder="e.g. Aluva Market, Thrissur Town, Chalakudy..."
+                   autocomplete="off">
+            <div class="place-results" id="placeResults"></div>
+          </div>
+          <span class="form-hint">Type any place name, landmark, or address in Kerala</span>
+        </div>
+
+        <!-- Selected location display -->
+        <div class="selected-loc" id="selectedLoc">
+          <div class="selected-loc-name" id="selectedLocName">—</div>
+          <div class="selected-loc-coords" id="selectedLocCoords">—</div>
+        </div>
+
+        <!-- OR divider -->
+        <div style="display:flex;align-items:center;gap:0.75rem;margin:0.75rem 0;color:hsl(var(--muted-foreground));font-size:0.78rem;">
+          <div style="flex:1;height:1px;background:hsl(var(--border));"></div>
+          or click on the map below
+          <div style="flex:1;height:1px;background:hsl(var(--border));"></div>
+        </div>
+
+        <!-- District filter -->
+        <div class="form-group">
+          <label class="form-label">🏛️ Filter Results by District</label>
+          <select id="districtFilter" class="form-control">
+            <option value="">— Show all districts —</option>
+            {% for d in districts %}
+            <option value="{{ d }}" {% if d == selected_district %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+          <span class="form-hint">Optionally restrict results to one district</span>
+        </div>
+
+        <!-- Quick district origin buttons -->
+        <div class="form-group">
+          <label class="form-label">⚡ Quick set origin to district centre</label>
+          <div class="district-grid">
+            {% for d in districts %}
+            <button type="button" class="district-btn" onclick="setDistrictOrigin('{{ d }}')">{{ d }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;margin-top:0.5rem;" onclick="findShelters()">
+          <i data-lucide="search" style="width:16px;height:16px;"></i> Find Best Shelters
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Results appear here -->
+    <div class="loading-spinner" id="loadingSpinner">
+      <div>⏳ Searching nearby shelters...</div>
+    </div>
+    <div id="resultsContainer"></div>
+  </div>
+
+  <!-- RIGHT: Map -->
+  <div>
+    <div id="routeMap"></div>
+    <div class="map-hint">
+      <i data-lucide="mouse-pointer-click" style="width:13px;height:13px;display:inline;"></i>
+      Click anywhere on the map to set it as your origin point
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const DISTRICT_COORDS = {{ district_coords|safe }};
+const SERVER_RECOMMENDATIONS = {{ recommendations_json|safe }};
+
+let originLat = {{ origin_lat|default:"null" }};
+let originLon = {{ origin_lon|default:"null" }};
+let originMarker = null;
+let shelterMarkers = [];
+
+// ── MAP INIT ──────────────────────────────────────────────────
+const map = L.map('routeMap').setView([10.5, 76.3], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Click on map to set origin
+map.on('click', function(e) {
+  setOrigin(e.latlng.lat, e.latlng.lng, `Map click (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`);
+});
+
+// Origin marker icon (red)
+const originIcon = L.divIcon({
+  html: '<div style="background:#ef4444;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
+  iconSize:[16,16], iconAnchor:[8,8], className:''
+});
+
+// Shelter marker icon (blue)
+const shelterIcon = L.divIcon({
+  html: '<div style="background:#3b82f6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+  iconSize:[14,14], iconAnchor:[7,7], className:''
+});
+
+function setOrigin(lat, lon, label) {
+  originLat = lat;
+  originLon = lon;
+
+  // Update marker on map
+  if (originMarker) map.removeLayer(originMarker);
+  originMarker = L.marker([lat, lon], {icon: originIcon})
+    .addTo(map)
+    .bindPopup(`<b>📍 Origin</b><br>${label}`)
+    .openPopup();
+
+  // Update UI chip
+  document.getElementById('selectedLoc').classList.add('visible');
+  document.getElementById('selectedLocName').textContent = label;
+  document.getElementById('selectedLocCoords').textContent = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
+}
+
+function setDistrictOrigin(district) {
+  if (!DISTRICT_COORDS[district]) return;
+  const [lat, lon] = DISTRICT_COORDS[district];
+  setOrigin(lat, lon, `${district} (district centre)`);
+  map.setView([lat, lon], 10);
+
+  // Highlight button
+  document.querySelectorAll('.district-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ── PLACE SEARCH (OpenStreetMap Nominatim) ───────────────────
+let searchTimeout;
+document.getElementById('placeSearch').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const q = this.value.trim();
+  if (q.length < 3) { document.getElementById('placeResults').style.display = 'none'; return; }
+
+  searchTimeout = setTimeout(() => searchPlace(q), 400);
+});
+
+async function searchPlace(query) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' Kerala India')}&format=json&limit=5&countrycodes=in`;
+  try {
+    const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await resp.json();
+    showPlaceResults(data);
+  } catch(e) {
+    console.error('Nominatim error:', e);
+  }
+}
+
+function showPlaceResults(results) {
+  const container = document.getElementById('placeResults');
+  if (!results.length) {
+    container.innerHTML = '<div class="place-result-item"><div>No results found. Try a different name.</div></div>';
+    container.style.display = 'block';
+    return;
+  }
+  container.innerHTML = results.map(r => `
+    <div class="place-result-item" onclick="selectPlace(${r.lat}, ${r.lon}, '${r.display_name.replace(/'/g,"\\'")}')">
+      <div>📍</div>
+      <div>
+        <div class="place-result-name">${r.display_name.split(',')[0]}</div>
+        <div class="place-result-addr">${r.display_name.split(',').slice(1,4).join(',')}</div>
+      </div>
+    </div>
+  `).join('');
+  container.style.display = 'block';
+}
+
+function selectPlace(lat, lon, name) {
+  document.getElementById('placeResults').style.display = 'none';
+  document.getElementById('placeSearch').value = name.split(',')[0];
+  setOrigin(parseFloat(lat), parseFloat(lon), name.split(',')[0]);
+  map.setView([lat, lon], 13);
+}
+
+// Close results on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.place-search-wrapper')) {
+    document.getElementById('placeResults').style.display = 'none';
+  }
+});
+
+// ── FIND SHELTERS ─────────────────────────────────────────────
+async function findShelters() {
+  if (!originLat || !originLon) {
+    alert('Please search for a location or click on the map first.');
+    return;
+  }
+
+  const district = document.getElementById('districtFilter').value;
+
+  // Show spinner
+  document.getElementById('loadingSpinner').style.display = 'block';
+  document.getElementById('resultsContainer').innerHTML = '';
+
+  // Clear old shelter markers
+  shelterMarkers.forEach(m => map.removeLayer(m));
+  shelterMarkers = [];
+
+  const url = `/shelters/admin/shelters/recommendations/?lat=${originLat}&lon=${originLon}${district ? '&district='+district : ''}`;
+  const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+
+  if (resp.ok) {
+    const data = await resp.json();
+    document.getElementById('loadingSpinner').style.display = 'none';
+    renderResults(data.recommendations);
+    plotSheltersOnMap(data.recommendations);
+  } else {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('resultsContainer').innerHTML =
+      '<div class="empty-reco">❌ Error loading recommendations. Please try again.</div>';
+  }
+}
+
+function renderResults(recommendations) {
+  const container = document.getElementById('resultsContainer');
+  if (!recommendations.length) {
+    container.innerHTML = `
+      <div class="empty-reco">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🏚️</div>
+        <div style="font-weight:600;margin-bottom:0.4rem;">No suitable shelters found</div>
+        <div style="font-size:0.875rem;color:hsl(var(--muted-foreground));">
+          All shelters may be at full capacity, or none exist for the selected district.
+        </div>
+      </div>`;
+    return;
+  }
+
+  const rankClasses = ['rank-1', 'rank-2', 'rank-3'];
+  const rankEmoji   = ['🥇', '🥈', '🥉'];
+
+  container.innerHTML = `
+    <div style="margin-top:1.25rem;">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem;">
+        Top ${recommendations.length} Recommended Shelter${recommendations.length > 1 ? 's' : ''}
+      </div>
+      <div style="font-size:0.78rem;color:hsl(var(--muted-foreground));margin-bottom:0.875rem;">
+        Ranked by distance (45%) + availability (45%) + accessibility/medical bonus (10%)
+      </div>
+    </div>
+    <div class="reco-cards">
+      ${recommendations.map((r, i) => `
+        <div class="reco-card">
+          <div class="reco-card-inner">
+            <div class="rank-badge ${rankClasses[i] || ''}">${rankEmoji[i] || i+1}</div>
+            <div>
+              <div class="reco-name">${r.name}</div>
+              <div class="reco-dist">${r.district}</div>
+              <div class="pills" style="margin-top:0.5rem;">
+                <span class="pill blue">📍 ${r.distance_km} km away</span>
+                ${r.accessible ? '<span class="pill green">♿ Accessible</span>' : ''}
+                ${r.has_medical ? '<span class="pill green">🏥 Medical</span>' : ''}
+                <span class="pill ${r.occupancy_pct >= 85 ? 'red' : r.occupancy_pct >= 65 ? 'orange' : 'green'}">
+                  ${r.free_slots} free slots
+                </span>
+              </div>
+              <div style="margin-top:0.6rem;">
+                <div class="occ-row">
+                  <span style="color:hsl(var(--muted-foreground))">Occupancy</span>
+                  <span style="font-weight:600">${r.occupancy_pct}%</span>
+                </div>
+                <div class="occ-bar">
+                  <div class="occ-fill ${r.occupancy_pct >= 85 ? 'danger' : r.occupancy_pct >= 65 ? 'warn' : 'safe'}"
+                       style="width:${r.occupancy_pct}%"></div>
+                </div>
+              </div>
+            </div>
+            <div class="reco-actions">
+              <div>
+                <div class="score-num">${r.composite}</div>
+                <div class="score-chip">score</div>
+              </div>
+              <a href="/shelters/admin/shelters/${r.shelter_id}/" class="btn btn-secondary btn-sm">
+                View →
+              </a>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function plotSheltersOnMap(recommendations) {
+  recommendations.forEach((r, i) => {
+    if (!r.latitude || !r.longitude) return;
+    const rankEmoji = ['🥇','🥈','🥉'][i] || '📍';
+    const m = L.marker([r.latitude, r.longitude], {icon: shelterIcon})
+      .addTo(map)
+      .bindPopup(`
+        <b>${rankEmoji} ${r.name}</b><br>
+        ${r.district}<br>
+        <small>${r.occupancy_pct}% full · ${r.distance_km}km away</small>
+      `);
+    shelterMarkers.push(m);
+  });
+
+  // Fit map to show both origin and results
+  if (shelterMarkers.length && originLat) {
+    const bounds = L.latLngBounds(
+      [[originLat, originLon], ...recommendations.map(r => [r.latitude, r.longitude])]
+    );
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }
+}
+
+// ── Load server-side results on page load if origin was passed ──
+if (originLat && originLon) {
+  setOrigin(originLat, originLon, 'Previous search');
+  if (SERVER_RECOMMENDATIONS.length) {
+    renderResults(SERVER_RECOMMENDATIONS);
+    plotSheltersOnMap(SERVER_RECOMMENDATIONS);
+  }
+}
+</script>
+{% endblock %}

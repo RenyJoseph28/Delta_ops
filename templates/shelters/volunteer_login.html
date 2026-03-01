@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volunteer Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary:217 91% 60%; --border:214 32% 91%; --muted:215 16% 47%; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Inter',sans-serif; min-height:100vh;
+      background:linear-gradient(160deg,hsl(142 76% 20%) 0%,hsl(217 91% 20%) 100%);
+      display:flex; align-items:center; justify-content:center; padding:1rem;
+    }
+    .card {
+      background:white; border-radius:1.25rem; padding:2rem;
+      width:100%; max-width:380px; box-shadow:0 25px 50px rgba(0,0,0,0.3);
+    }
+    .icon { font-size:2.5rem; text-align:center; margin-bottom:0.75rem; }
+    .title { font-size:1.4rem; font-weight:700; text-align:center; margin-bottom:0.25rem; }
+    .sub { font-size:0.875rem; color:hsl(var(--muted)); text-align:center; margin-bottom:1.5rem; }
+    .form-group { margin-bottom:1rem; }
+    .form-label { font-size:0.875rem; font-weight:500; display:block; margin-bottom:0.4rem; }
+    .form-control {
+      width:100%; padding:0.75rem 1rem; border:1px solid hsl(var(--border));
+      border-radius:0.625rem; font-size:1rem; font-family:inherit; text-align:center;
+    }
+    .form-control:focus { outline:none; border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsla(217,91%,60%,0.15); }
+    .pin-input { font-size:1.5rem; font-weight:700; letter-spacing:0.5rem; }
+    .btn {
+      width:100%; padding:0.875rem; border-radius:0.625rem;
+      background:linear-gradient(135deg,hsl(142 76% 36%),hsl(160 60% 30%));
+      color:white; border:none; font-size:1rem; font-weight:700;
+      cursor:pointer; font-family:inherit; margin-top:0.5rem;
+    }
+    .btn:hover { opacity:0.9; }
+    .error-msg { background:#fee2e2; color:#991b1b; padding:0.625rem; border-radius:0.5rem; font-size:0.85rem; margin-bottom:1rem; text-align:center; }
+    .mgr-link { text-align:center; margin-top:1.25rem; font-size:0.8rem; color:hsl(var(--muted)); }
+    .mgr-link a { color:hsl(var(--primary)); text-decoration:none; font-weight:500; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🙋</div>
+    <div class="title">Volunteer Login</div>
+    <div class="sub">Enter your name and 6-digit PIN to submit shelter updates</div>
+
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="error-msg">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Your Name</label>
+        <input type="text" name="name" class="form-control" placeholder="Enter your full name" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">6-Digit PIN</label>
+        <input type="number" name="pin" class="form-control pin-input" placeholder="• • • • • •"
+               maxlength="6" minlength="6" required autocomplete="off">
+      </div>
+      <button type="submit" class="btn">Sign In →</button>
+    </form>
+
+    <div class="mgr-link">
+      Shelter Manager? <a href="{% url 'shelter_manager_login' %}">Manager Login →</a>
+    </div>
+  </div>
+</body>
+</html>
+
+
+{% comment %}
+================================================================================
+SAVE AS: templates/shelters/volunteer_update.html
+================================================================================
+{% endcomment %}

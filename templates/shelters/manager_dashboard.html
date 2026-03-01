@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manager Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg: 210 40% 98%; --card: 0 0% 100%; --foreground: 222 47% 11%;
+      --primary: 217 91% 60%; --border: 214 32% 91%; --muted: 215 16% 47%;
+      --success: 142 76% 36%; --warning: 38 92% 50%; --destructive: 0 84% 60%;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:hsl(var(--bg)); color:hsl(var(--foreground)); min-height:100vh; }
+
+    .topbar {
+      background:linear-gradient(135deg,hsl(222 47% 11%),hsl(217 91% 25%));
+      color:white; padding:1rem 1.5rem;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .topbar-left { display:flex; align-items:center; gap:0.75rem; }
+    .logo { width:36px;height:36px;border-radius:0.5rem;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-weight:700; }
+    .topbar-title { font-weight:700; font-size:1.1rem; }
+    .topbar-sub { font-size:0.8rem; opacity:0.75; }
+    .logout-btn { padding:0.4rem 0.875rem; border-radius:0.5rem; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:white; cursor:pointer; font-size:0.85rem; text-decoration:none; }
+
+    .content { padding:1.25rem; max-width:1100px; margin:0 auto; }
+
+    .alert-banner {
+      background:#fff7ed; border:1px solid #fed7aa; border-radius:0.75rem;
+      padding:0.875rem 1.25rem; margin-bottom:1rem;
+      display:flex; align-items:center; gap:0.75rem; font-size:0.875rem;
+    }
+
+    .shelter-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
+
+    .shelter-card {
+      background:hsl(var(--card)); border-radius:0.875rem; border:1px solid hsl(var(--border));
+      overflow:hidden; transition:all 0.2s;
+    }
+    .shelter-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+    .shelter-card.risk-high   { border-top:3px solid hsl(var(--destructive)); }
+    .shelter-card.risk-medium { border-top:3px solid hsl(var(--warning)); }
+    .shelter-card.risk-low    { border-top:3px solid hsl(var(--success)); }
+
+    .sc-header { padding:1rem; display:flex; justify-content:space-between; align-items:flex-start; }
+    .sc-name { font-weight:700; font-size:1rem; }
+    .sc-district { font-size:0.8rem; color:hsl(var(--muted)); }
+
+    .risk-pill { padding:0.2rem 0.6rem; border-radius:9999px; font-size:0.7rem; font-weight:700; }
+    .risk-pill.high   { background:hsla(0,84%,60%,0.12);   color:hsl(var(--destructive)); }
+    .risk-pill.medium { background:hsla(38,92%,50%,0.12);  color:hsl(var(--warning)); }
+    .risk-pill.low    { background:hsla(142,76%,36%,0.12); color:hsl(var(--success)); }
+
+    .sc-body { padding:0 1rem 1rem; }
+    .occ-row { display:flex; justify-content:space-between; font-size:0.8rem; color:hsl(var(--muted)); margin-bottom:0.3rem; }
+    .progress-bar { width:100%; height:7px; background:hsl(214 32% 91%); border-radius:9999px; overflow:hidden; margin-bottom:0.75rem; }
+    .progress-fill { height:100%; border-radius:9999px; }
+    .progress-fill.safe   { background:hsl(var(--success)); }
+    .progress-fill.warn   { background:hsl(var(--warning)); }
+    .progress-fill.danger { background:hsl(var(--destructive)); }
+
+    .chip-row { display:flex; flex-wrap:wrap; gap:0.35rem; margin-bottom:0.75rem; }
+    .chip { display:inline-flex;align-items:center;gap:0.25rem;padding:0.2rem 0.5rem;border-radius:0.35rem;font-size:0.72rem;font-weight:500;border:1px solid; }
+    .chip.ok       { background:#f0fdf4;color:#166534;border-color:#bbf7d0; }
+    .chip.low      { background:#fefce8;color:#854d0e;border-color:#fde68a; }
+    .chip.critical { background:#fff1f2;color:#be123c;border-color:#fecdd3; }
+    .chip.out      { background:#fee2e2;color:#991b1b;border-color:#fca5a5; }
+
+    .sc-footer {
+      padding:0.75rem 1rem; border-top:1px solid hsl(var(--border));
+      background:hsl(210 40% 98%); display:flex; gap:0.5rem;
+    }
+
+    .btn { display:inline-flex;align-items:center;gap:0.4rem;padding:0.45rem 0.875rem;border-radius:0.5rem;border:none;cursor:pointer;font-size:0.825rem;font-weight:500;font-family:inherit;text-decoration:none;transition:all 0.15s; }
+    .btn-primary { background:linear-gradient(135deg,hsl(217 91% 60%),hsl(271 81% 56%));color:white; }
+    .btn-secondary { background:hsl(210 40% 96%);color:hsl(var(--foreground));border:1px solid hsl(var(--border)); }
+    .btn-primary:hover { transform:translateY(-1px);box-shadow:0 4px 12px hsla(217,91%,60%,0.35); }
+
+    .empty { text-align:center;padding:3rem;color:hsl(var(--muted)); }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">SM</div>
+    <div>
+      <div class="topbar-title">Shelter Manager Portal</div>
+      <div class="topbar-sub">{{ manager.full_name }} · {{ manager.district|default:"All Districts" }}</div>
+    </div>
+  </div>
+  <a href="{% url 'shelter_manager_logout' %}" class="logout-btn">Logout</a>
+</div>
+
+<div class="content">
+
+  {% if alert_count > 0 %}
+  <div class="alert-banner">
+    ⚠️ <strong>{{ alert_count }} unresolved alert{% if alert_count > 1 %}s{% endif %}</strong> require attention across your shelters.
+  </div>
+  {% endif %}
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:0.5rem;padding:0.625rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#166534;">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if shelter_data %}
+  <div class="shelter-grid">
+    {% for item in shelter_data %}
+    {% with s=item.shelter ml=item.ml sup=item.supply wl=item.workload %}
+    <div class="shelter-card risk-{{ ml.risk }}">
+      <div class="sc-header">
+        <div>
+          <div class="sc-name">{{ s.name }}</div>
+          <div class="sc-district">{{ s.district }}</div>
+        </div>
+        <span class="risk-pill {{ ml.risk }}">{{ ml.risk|upper }}</span>
+      </div>
+      <div class="sc-body">
+        <div class="occ-row">
+          <span>Occupancy</span>
+          <span style="font-weight:600;color:hsl(var(--foreground));">{{ s.current_occupancy }}/{{ s.max_capacity }} ({{ s.occupancy_pct }}%)</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill {% if s.occupancy_pct >= 85 %}danger{% elif s.occupancy_pct >= 65 %}warn{% else %}safe{% endif %}"
+               style="width:{{ s.occupancy_pct }}%"></div>
+        </div>
+        <div class="chip-row">
+          {% if sup.food %}<span class="chip {{ sup.food.status }}">🍽 {{ sup.food.days_remaining|default:"?" }}d</span>{% endif %}
+          {% if sup.water %}<span class="chip {{ sup.water.status }}">💧 {{ sup.water.days_remaining|default:"?" }}d</span>{% endif %}
+          <span class="chip ok">👥 {{ wl.total_active_volunteers }} vols</span>
+        </div>
+      </div>
+      <div class="sc-footer">
+        <a href="{% url 'manager_shelter_detail' s.id %}" class="btn btn-primary">Manage</a>
+        <a href="{% url 'manager_volunteers' s.id %}" class="btn btn-secondary">Volunteers</a>
+      </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">No shelters assigned to you yet. Contact the super admin.</div>
+  {% endif %}
+
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

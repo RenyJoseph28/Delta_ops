@@ -1,0 +1,264 @@
+{% extends "shelters/manager_base.html" %}
+{% block title %}{{ shelter.name }} — Shelter Manager{% endblock %}
+{% block page_title %}{{ shelter.name }}{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">
+  <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:1100px){ .detail-grid{ grid-template-columns:1fr; } }
+  .info-row { display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0; border-bottom:1px solid hsl(var(--border)); font-size:0.875rem; }
+  .info-row:last-child { border:none; }
+  .info-label { color:hsl(var(--muted-foreground)); }
+  .info-value { font-weight:500; }
+  .risk-banner { border-radius:0.75rem; padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .risk-banner.high   { background:hsla(0,84%,60%,0.08);   border:1px solid hsla(0,84%,60%,0.25); }
+  .risk-banner.medium { background:hsla(38,92%,50%,0.08);  border:1px solid hsla(38,92%,50%,0.25); }
+  .risk-banner.low    { background:hsla(142,76%,36%,0.08); border:1px solid hsla(142,76%,36%,0.25); }
+  .risk-banner-title { font-weight:700; font-size:1.1rem; }
+  .risk-banner.high   .risk-banner-title { color:hsl(var(--destructive)); }
+  .risk-banner.medium .risk-banner-title { color:hsl(var(--warning)); }
+  .risk-banner.low    .risk-banner-title { color:hsl(var(--success)); }
+  .probability-circle { width:60px; height:60px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:700; font-size:1rem; border:3px solid; flex-shrink:0; }
+  .probability-circle.high   { border-color:hsl(var(--destructive)); color:hsl(var(--destructive)); }
+  .probability-circle.medium { border-color:hsl(var(--warning));     color:hsl(var(--warning)); }
+  .probability-circle.low    { border-color:hsl(var(--success));     color:hsl(var(--success)); }
+  .supply-block { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .supply-card { border-radius:0.75rem; padding:1rem; border:1px solid hsl(var(--border)); background:hsl(var(--secondary)/0.4); }
+  .supply-icon { font-size:1.5rem; margin-bottom:0.4rem; }
+  .supply-label { font-size:0.7rem; font-weight:600; text-transform:uppercase; color:hsl(var(--muted-foreground)); letter-spacing:0.06em; }
+  .supply-days { font-size:1.5rem; font-weight:700; }
+  .supply-days.ok       { color:hsl(var(--success)); }
+  .supply-days.low      { color:hsl(var(--warning)); }
+  .supply-days.critical,.supply-days.out,.supply-days.out_soon { color:hsl(var(--destructive)); }
+  .history-row { padding:0.625rem 0; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid hsl(var(--border)); font-size:0.85rem; flex-wrap:wrap; }
+  .history-row:last-child { border:none; }
+  .alert-item { display:flex; align-items:flex-start; gap:0.75rem; padding:0.75rem; border-radius:0.5rem; border:1px solid hsl(var(--border)); margin-bottom:0.5rem; }
+  .alert-item.overflow_high  { border-left:3px solid hsl(var(--destructive)); }
+  .alert-item.food_low       { border-left:3px solid hsl(var(--warning)); }
+  .alert-item.water_low      { border-left:3px solid hsl(38 60% 55%); }
+  .alert-item.understaffed   { border-left:3px solid hsl(271 81% 56%); }
+  .vol-task-tag { display:inline-block; padding:0.2rem 0.5rem; border-radius:0.35rem; font-size:0.7rem; font-weight:500; background:hsl(var(--secondary)); border:1px solid hsl(var(--border)); }
+  .occ-bar { width:100%; height:8px; background:hsl(var(--secondary)); border-radius:9999px; overflow:hidden; margin:0.5rem 0; }
+  .occ-fill { height:100%; border-radius:9999px; }
+  .occ-fill.safe  { background:hsl(var(--success)); }
+  .occ-fill.warn  { background:hsl(var(--warning)); }
+  .occ-fill.danger{ background:hsl(var(--destructive)); }
+  .uf-label { font-size:0.8rem; font-weight:500; margin-bottom:0.3rem; display:block; }
+  .uf-select, .uf-input { width:100%; padding:0.5rem 0.75rem; border:1px solid hsl(var(--border)); border-radius:0.5rem; font-size:0.875rem; font-family:inherit; background:white; }
+  .uf-select:focus, .uf-input:focus { outline:none; border-color:hsl(var(--primary)); }
+  .uf-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  {% for msg in messages %}
+  <div style="background:#dcfce7;border:1px solid #bbf7d0;color:#166534;padding:0.625rem 1rem;border-radius:0.5rem;margin-bottom:1rem;font-size:0.875rem;">✅ {{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+{% if ml %}
+<div class="risk-banner {{ ml.risk }}">
+  <div>
+    <div class="risk-banner-title">
+      {% if ml.risk == "high" %}🚨{% elif ml.risk == "medium" %}⚠️{% else %}✅{% endif %}
+      Overflow Risk: {{ ml.risk|upper }}
+    </div>
+    <div style="font-size:0.82rem;color:hsl(var(--muted-foreground));margin-top:0.25rem;">Based on occupancy trend, supply status, and weather data.</div>
+  </div>
+  <div class="probability-circle {{ ml.risk }}">
+    {% widthratio ml.probability 1 100 %}%
+    <span style="font-size:0.6rem;font-weight:400;">prob</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick Update Form -->
+<div class="card" style="margin-bottom:1rem;border-top:3px solid hsl(var(--success));">
+  <div class="card-header"><div class="card-title">📋 Submit Status Update</div></div>
+  <form method="POST" action="{% url 'manager_update_status' shelter.id %}">
+    {% csrf_token %}
+    <div class="uf-grid">
+      <div>
+        <label class="uf-label">Current Occupancy *</label>
+        <input type="number" name="current_occupancy" class="uf-input"
+               value="{{ shelter.current_occupancy }}" min="0" max="{{ shelter.max_capacity }}" required>
+      </div>
+      <div>
+        <label class="uf-label">Food Status</label>
+        <select name="food_status" class="uf-select">
+          {% with cur=latest.food_status|default:"ok" %}
+          <option value="ok"       {% if cur == "ok" %}selected{% endif %}>✅ OK</option>
+          <option value="low"      {% if cur == "low" %}selected{% endif %}>⚠️ Low</option>
+          <option value="critical" {% if cur == "critical" %}selected{% endif %}>🚨 Critical</option>
+          <option value="out"      {% if cur == "out" %}selected{% endif %}>❌ Out</option>
+          {% endwith %}
+        </select>
+      </div>
+      <div>
+        <label class="uf-label">Water Status</label>
+        <select name="water_status" class="uf-select">
+          {% with cur=latest.water_status|default:"ok" %}
+          <option value="ok"       {% if cur == "ok" %}selected{% endif %}>✅ OK</option>
+          <option value="low"      {% if cur == "low" %}selected{% endif %}>⚠️ Low</option>
+          <option value="critical" {% if cur == "critical" %}selected{% endif %}>🚨 Critical</option>
+          <option value="out"      {% if cur == "out" %}selected{% endif %}>❌ Out</option>
+          {% endwith %}
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;padding-top:1.5rem;">
+        <input type="checkbox" name="medical_support" id="medSupport"
+               {% if latest.medical_support %}checked{% endif %} style="width:16px;height:16px;">
+        <label for="medSupport" class="uf-label" style="cursor:pointer;margin:0;">🏥 Medical available</label>
+      </div>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+      <label class="uf-label">Notes (optional)</label>
+      <input type="text" name="notes" class="uf-input" placeholder="Any urgent observations...">
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i data-lucide="send" style="width:15px;height:15px;"></i> Submit Update
+    </button>
+  </form>
+</div>
+
+<div class="detail-grid">
+  <!-- LEFT -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Shelter Info</div></div>
+      <div class="info-row"><span class="info-label">District</span><span class="info-value">{{ shelter.district }}</span></div>
+      <div class="info-row"><span class="info-label">Address</span><span class="info-value">{{ shelter.address }}</span></div>
+      <div class="info-row"><span class="info-label">Status</span>
+        <span class="badge {% if shelter.status == 'active' %}success{% elif shelter.status == 'full' %}danger{% else %}neutral{% endif %}">{{ shelter.status|upper }}</span>
+      </div>
+      <div class="info-row"><span class="info-label">Capacity</span><span class="info-value">{{ shelter.current_occupancy }} / {{ shelter.max_capacity }}</span></div>
+      <div class="info-row"><span class="info-label">Contact</span><span class="info-value">{{ shelter.contact_phone|default:"—" }}</span></div>
+      <div style="margin-top:0.75rem;">
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:hsl(var(--muted-foreground));margin-bottom:0.25rem;">
+          <span>Occupancy</span><span>{{ shelter.occupancy_pct }}%</span>
+        </div>
+        <div class="occ-bar">
+          <div class="occ-fill {% if shelter.occupancy_pct >= 85 %}danger{% elif shelter.occupancy_pct >= 65 %}warn{% else %}safe{% endif %}" style="width:{{ shelter.occupancy_pct }}%"></div>
+        </div>
+      </div>
+    </div>
+
+    {% if supply %}
+    <div class="card">
+      <div class="card-header"><div class="card-title">Food & Water</div><div class="card-subtitle">Estimated days remaining</div></div>
+      <div class="supply-block">
+        {% if supply.food %}
+        <div class="supply-card">
+          <div class="supply-icon">🍽️</div>
+          <div class="supply-label">Food</div>
+          <div class="supply-days {{ supply.food.status }}">{% if supply.food.days_remaining %}{{ supply.food.days_remaining }}d{% else %}No data{% endif %}</div>
+        </div>
+        {% endif %}
+        {% if supply.water %}
+        <div class="supply-card">
+          <div class="supply-icon">💧</div>
+          <div class="supply-label">Water</div>
+          <div class="supply-days {{ supply.water.status }}">{% if supply.water.days_remaining %}{{ supply.water.days_remaining }}d{% else %}No data{% endif %}</div>
+        </div>
+        {% endif %}
+      </div>
+      <!-- Log supply -->
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid hsl(var(--border));">
+        <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.75rem;">📦 Log Supply Update</div>
+        <form method="POST" action="{% url 'manager_log_supply' shelter.id %}">
+          {% csrf_token %}
+          <!-- Row 1: Type + Quantity side by side -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.6rem;">
+            <div>
+              <label class="uf-label">Type</label>
+              <select name="supply_type" class="uf-select">
+                <option value="food">Food (kg)</option>
+                <option value="water">Water (L)</option>
+              </select>
+            </div>
+            <div>
+              <label class="uf-label">Quantity</label>
+              <input type="number" step="0.1" name="quantity" class="uf-input" placeholder="e.g. 500" required>
+            </div>
+          </div>
+          <!-- Row 2: Daily use per person full width -->
+          <div style="margin-bottom:0.75rem;">
+            <label class="uf-label">Daily use per person</label>
+            <input type="number" step="0.01" name="consumption_rate" class="uf-input" placeholder="e.g. 0.75">
+            <span style="font-size:0.7rem;color:hsl(var(--muted-foreground));margin-top:0.25rem;display:block;">
+              Typical values: Food → 0.75 kg/person &nbsp;·&nbsp; Water → 3.0 L/person
+            </span>
+          </div>
+          <!-- Row 3: Submit -->
+          <button type="submit" class="btn btn-secondary btn-sm" style="width:100%;">
+            📦 Log Supply
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- RIGHT -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    {% if alerts %}
+    <div class="card">
+      <div class="card-header"><div class="card-title" style="color:hsl(var(--destructive));">⚠️ Active Alerts</div></div>
+      {% for alert in alerts %}
+      <div class="alert-item {{ alert.alert_type }}">
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;">{{ alert.get_alert_type_display }}</div>
+          <div style="font-size:0.8rem;color:hsl(var(--muted-foreground));margin-top:0.2rem;">{{ alert.message }}</div>
+          <div style="font-size:0.75rem;color:hsl(var(--muted-foreground));margin-top:0.2rem;">{{ alert.created_at|timesince }} ago</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="card-title">Volunteers ({{ volunteers|length }})</div>
+        <a href="{% url 'manager_volunteers' shelter.id %}" class="btn btn-secondary btn-sm">Manage</a>
+      </div>
+      {% if volunteers %}
+      {% for v in volunteers %}
+      <div class="history-row">
+        <div style="flex:1;"><span style="font-weight:500;">{{ v.name }}</span><span class="vol-task-tag" style="margin-left:0.4rem;">{{ v.task }}</span></div>
+        <span class="badge {% if v.status == 'active' %}success{% elif v.status == 'resting' %}warning{% else %}neutral{% endif %}">{{ v.status }}</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">No volunteers yet.</div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Recent Updates</div></div>
+      {% if history %}
+      {% for h in history %}
+      <div class="history-row">
+        <div style="flex:1;"><span style="font-weight:600;">{{ h.current_occupancy }} ppl</span><span style="color:hsl(var(--muted-foreground));margin-left:0.5rem;font-size:0.8rem;">{{ h.updated_by }}</span></div>
+        <span class="badge {% if h.food_status == 'ok' %}success{% elif h.food_status == 'low' %}warning{% else %}danger{% endif %}">🍽 {{ h.food_status }}</span>
+        <span style="font-size:0.75rem;color:hsl(var(--muted-foreground));">{{ h.updated_at|timesince }} ago</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">No updates yet.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Sign Up - Delta Ops{% endblock %}
+
+{% block content %}
+
+<!-- CSS for message styling -->
+<style>
+.messages-container {
+    margin-bottom: 1.5rem;
+}
+
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.alert-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.alert-success {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.alert-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+</style>
+
+<div class="auth-page">
+    <!-- Background -->
+    <div class="auth-bg">
+        <img src="{% static 'images/flood-hero.jpg' %}" alt="Flood landscape" class="auth-bg-image">
+        <div class="auth-overlay"></div>
+    </div>
+
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <!-- Auth Card -->
+        <div class="auth-card glass">
+            <!-- Logo -->
+            <a href="/" class="auth-logo">
+                <div class="logo-icon">
+                    <i data-lucide="waves" class="icon"></i>
+                </div>
+                <span class="logo-text">Delta Ops</span>
+            </a>
+
+            {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" role="alert">
+                        <i data-lucide="{% if message.tags == 'error' %}alert-circle{% elif message.tags == 'success' %}check-circle{% else %}info{% endif %}" class="alert-icon"></i>
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <h1 class="auth-title">Create Account</h1>
+            <p class="auth-subtitle">Join Delta Ops to protect your community</p>
+
+            <!-- Form -->
+            <form class="auth-form" method="POST" action="{% url 'signup' %}">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="fullname" class="form-label">
+                        <i data-lucide="user" class="label-icon"></i>
+                        Full Name
+                    </label>
+                    <input type="text" id="fullname" name="fullname" class="form-input"
+                        placeholder="Enter your full name" value="{{ fullname|default:'' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i data-lucide="mail" class="label-icon"></i>
+                        Email Address
+                    </label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email"
+                      value="{{ email|default:'' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="mobile" class="form-label">
+                        <i data-lucide="phone" class="label-icon"></i>
+                        Mobile
+                    </label>
+                    <input type="text" id="mobile" name="mobile" class="form-input" placeholder="Enter your mobile"
+                      value="{{ mobile|default:'' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="district" class="form-label">
+                        <i data-lucide="home" class="label-icon"></i>
+                        District
+                    </label>
+
+                    <select id="district" name="district" class="form-input" required>
+                        <option value="">Select your district</option>
+                    </select>
+                </div>
+
+
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i data-lucide="lock" class="label-icon"></i>
+                        Password
+                    </label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" class="form-input"
+                            placeholder="Create a password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                            <i data-lucide="eye" class="toggle-icon" id="passwordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword" class="form-label">
+                        <i data-lucide="shield" class="label-icon"></i>
+                        Confirm Password
+                    </label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="confirmPassword" name="confirm_password" class="form-input"
+                            placeholder="Confirm your password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')">
+                            <i data-lucide="eye" class="toggle-icon" id="confirmPasswordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-checkbox">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms" class="checkbox-label">
+                        I agree to the <a href="#" class="auth-link">Terms of Service</a> and <a href="#"
+                            class="auth-link">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i data-lucide="user-plus" class="btn-icon"></i>
+                    Create Account
+                </button>
+            </form>
+
+            <p class="auth-footer">
+                Already have an account?
+                <a href="{% url 'signin' %}" class="auth-link">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+//  JavaScript to populate districts
+<script>
+    const keralaDistricts = [
+        "Alappuzha",
+        "Ernakulam",
+        "Idukki",
+        "Kannur",
+        "Kasaragod",
+        "Kollam",
+        "Kottayam",
+        "Kozhikode",
+        "Malappuram",
+        "Palakkad",
+        "Pathanamthitta",
+        "Thiruvananthapuram",
+        "Thrissur",
+        "Wayanad"
+    ];
+
+    const districtSelect = document.getElementById("district");
+    const selectedDistrict = "{{ district|default:'' }}";
+
+    keralaDistricts.forEach(district => {
+        const option = document.createElement("option");
+        option.value = district;
+        option.textContent = district;
+        if (district === selectedDistrict) {
+            option.selected = true;
+        }
+        districtSelect.appendChild(option);
+    });
+</script>
+
+{% endblock %}

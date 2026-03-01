@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+/* Flood Management Dark Theme - Deep blues, teals, urgent amber accents */
+
+@layer base {
+  :root {
+    --background: 220 25% 8%;
+    --foreground: 210 40% 96%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 220 25% 10%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 190 80% 45%;
+    --primary-foreground: 220 25% 8%;
+
+    --secondary: 220 25% 18%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 220 20% 20%;
+    --muted-foreground: 215 20% 60%;
+
+    --accent: 35 95% 55%;
+    --accent-foreground: 220 25% 8%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 20% 20%;
+    --input: 220 20% 18%;
+    --ring: 190 80% 45%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gradient-hero: linear-gradient(135deg, hsl(220 25% 8% / 0.7), hsl(200 30% 15% / 0.6));
+    --gradient-glass: linear-gradient(135deg, hsl(200 30% 20% / 0.3), hsl(220 25% 15% / 0.2));
+    --gradient-button: linear-gradient(135deg, hsl(190 80% 45%), hsl(190 80% 35%));
+    --gradient-accent: linear-gradient(135deg, hsl(35 95% 55%), hsl(25 95% 50%));
+    
+    --shadow-glow: 0 0 40px hsl(190 80% 45% / 0.3);
+    --shadow-card: 0 8px 32px hsl(220 25% 5% / 0.5);
+    --shadow-button: 0 4px 20px hsl(190 80% 45% / 0.4);
+
+    --sidebar-background: 220 25% 10%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 190 80% 45%;
+    --sidebar-primary-foreground: 220 25% 8%;
+    --sidebar-accent: 220 25% 18%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 220 20% 20%;
+    --sidebar-ring: 190 80% 45%;
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 210 40% 96%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 220 25% 10%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 190 80% 45%;
+    --primary-foreground: 220 25% 8%;
+
+    --secondary: 220 25% 18%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 220 20% 20%;
+    --muted-foreground: 215 20% 60%;
+
+    --accent: 35 95% 55%;
+    --accent-foreground: 220 25% 8%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 20% 20%;
+    --input: 220 20% 18%;
+    --ring: 190 80% 45%;
+
+    --sidebar-background: 220 25% 10%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 190 80% 45%;
+    --sidebar-primary-foreground: 220 25% 8%;
+    --sidebar-accent: 220 25% 18%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 220 20% 20%;
+    --sidebar-ring: 190 80% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-outfit antialiased;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-gradient-to-br from-secondary/40 to-secondary/20 backdrop-blur-xl border border-border/50;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
