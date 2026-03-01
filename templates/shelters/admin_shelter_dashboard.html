@@ -1,0 +1,329 @@
+{% extends "super_admin/base.html" %}
+{% block title %}Shelter Board — Delta Ops{% endblock %}
+{% block page_title %}Real-Time Shelter Board{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'admin_add_shelter' %}" class="btn btn-primary">
+  <i data-lucide="plus" style="width:16px;height:16px;"></i> Add Shelter
+</a>
+<a href="{% url 'admin_train_model' %}" class="btn btn-secondary"
+   onclick="return confirm('Retrain the ML overflow model now?')">
+  <i data-lucide="cpu" style="width:16px;height:16px;"></i> Train Model
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .shelter-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+
+  .shelter-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
+
+  .shelter-card {
+    background: hsl(var(--card));
+    border-radius: 0.875rem;
+    border: 1px solid hsl(var(--border));
+    overflow: hidden;
+    transition: all 0.25s ease;
+    animation: slideUp 0.4s ease-out forwards;
+    opacity: 0;
+  }
+
+  .shelter-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,0.10); }
+
+  /* Risk border accent */
+  .shelter-card.risk-high   { border-top: 3px solid hsl(var(--destructive)); }
+  .shelter-card.risk-medium { border-top: 3px solid hsl(var(--warning)); }
+  .shelter-card.risk-low    { border-top: 3px solid hsl(var(--success)); }
+
+  .shelter-card-header {
+    padding: 1rem 1rem 0.6rem;
+  }
+
+  .shelter-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .shelter-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: hsl(var(--card-foreground));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .shelter-district {
+    font-size: 0.78rem;
+    color: hsl(var(--muted-foreground));
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .risk-pill {
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .risk-pill.high   { background: hsla(0,84%,60%,0.12);   color: hsl(var(--destructive));  border: 1px solid hsla(0,84%,60%,0.25); }
+  .risk-pill.medium { background: hsla(38,92%,50%,0.12);  color: hsl(var(--warning));       border: 1px solid hsla(38,92%,50%,0.25); }
+  .risk-pill.low    { background: hsla(142,76%,36%,0.12); color: hsl(var(--success));       border: 1px solid hsla(142,76%,36%,0.25); }
+
+  .shelter-card-body { padding: 0 1rem 1rem; }
+
+  /* Occupancy bar */
+  .occ-row { display:flex; align-items:center; justify-content:space-between; font-size:0.8rem; margin-bottom:0.4rem; color:hsl(var(--muted-foreground)); }
+  .occ-value { font-weight:600; color:hsl(var(--foreground)); }
+
+  .progress-bar {
+    width:100%;
+    height: 8px;
+    background: hsl(var(--secondary));
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.6s ease;
+  }
+
+  .progress-fill.safe   { background: hsl(var(--success)); }
+  .progress-fill.warn   { background: hsl(var(--warning)); }
+  .progress-fill.danger { background: hsl(var(--destructive)); }
+
+  /* Supply + workload chips */
+  .chip-row { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.85rem; }
+
+  .chip {
+    display:inline-flex; align-items:center; gap:0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .chip.ok       { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+  .chip.low      { background:#fefce8; color:#854d0e; border-color:#fde68a; }
+  .chip.critical { background:#fff1f2; color:#be123c; border-color:#fecdd3; }
+  .chip.out      { background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+  .chip.adequate { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+  .chip.understaffed      { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+  .chip.critically_understaffed { background:#fff1f2; color:#be123c; border-color:#fecdd3; }
+
+  .shelter-card-footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid hsl(var(--border));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: hsl(var(--secondary) / 0.4);
+  }
+
+  .last-update { font-size:0.75rem; color:hsl(var(--muted-foreground)); display:flex; align-items:center; gap:0.3rem; }
+
+  /* empty state */
+  .empty-shelter { text-align:center; padding:4rem 2rem; }
+  .empty-shelter-icon { width:64px; height:64px; margin:0 auto 1rem; opacity:0.3; }
+
+  /* animation stagger */
+  .shelter-card:nth-child(1)  { animation-delay: 0ms }
+  .shelter-card:nth-child(2)  { animation-delay: 60ms }
+  .shelter-card:nth-child(3)  { animation-delay: 120ms }
+  .shelter-card:nth-child(4)  { animation-delay: 180ms }
+  .shelter-card:nth-child(5)  { animation-delay: 240ms }
+  .shelter-card:nth-child(6)  { animation-delay: 300ms }
+
+  @keyframes slideUp {
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div id="flash-messages" style="margin-bottom:1rem;">
+  {% for msg in messages %}
+  <div class="badge {% if msg.tags == 'success' %}success{% else %}danger{% endif %}"
+       style="padding:0.6rem 1rem;border-radius:0.5rem;margin-bottom:0.4rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:0.875rem;">
+    <span>{{ msg }}</span>
+    <span onclick="this.parentElement.remove()" style="cursor:pointer;opacity:0.5;font-size:1.1rem;line-height:1;padding-left:0.5rem;">✕</span>
+  </div>
+  {% endfor %}
+</div>
+<script>
+  setTimeout(() => {
+    const el = document.getElementById('flash-messages');
+    if (el) { el.style.transition='opacity 0.5s'; el.style.opacity='0'; setTimeout(()=>el.remove(),500); }
+  }, 4000);
+</script>
+{% endif %}
+
+<!-- ── Stats row ── -->
+<div class="shelter-stats">
+  <div class="stat-card" style="animation-delay:0ms">
+    <div class="stat-card-header">
+      <div>
+        <div class="stat-title">Total Shelters</div>
+        <div class="stat-value">{{ total_shelters }}</div>
+      </div>
+      <div class="stat-icon-wrapper">
+        <i data-lucide="house"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card" style="animation-delay:80ms">
+    <div class="stat-card-header">
+      <div>
+        <div class="stat-title">Total Occupancy</div>
+        <div class="stat-value">{{ total_occupancy }} <span style="font-size:1rem;color:hsl(var(--muted-foreground))">/ {{ total_capacity }}</span></div>
+      </div>
+      <div class="stat-icon-wrapper" style="background:linear-gradient(135deg,hsl(142 76% 36%),hsl(160 60% 45%))">
+        <i data-lucide="users"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card" style="animation-delay:160ms">
+    <div class="stat-card-header">
+      <div>
+        <div class="stat-title">High Risk Shelters</div>
+        <div class="stat-value" style="color:hsl(var(--destructive))">{{ high_risk_count }}</div>
+      </div>
+      <div class="stat-icon-wrapper" style="background:linear-gradient(135deg,hsl(0 84% 60%),hsl(15 90% 55%))">
+        <i data-lucide="triangle-alert"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card" style="animation-delay:240ms">
+    <div class="stat-card-header">
+      <div>
+        <div class="stat-title">Active Alerts</div>
+        <div class="stat-value" style="color:hsl(var(--warning))">{{ alert_count }}</div>
+      </div>
+      <div class="stat-icon-wrapper" style="background:linear-gradient(135deg,hsl(38 92% 50%),hsl(25 95% 55%))">
+        <i data-lucide="bell-ring"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Shelter Grid ── -->
+{% if shelter_data %}
+<div class="shelter-grid">
+  {% for item in shelter_data %}
+  {% with s=item.shelter ml=item.ml sup=item.supply wl=item.workload %}
+
+  {% with occ_pct=s.occupancy_pct %}
+  <div class="shelter-card risk-{{ ml.risk }}">
+
+    <!-- Header -->
+    <div class="shelter-card-header">
+      <!-- Row 1: Name + Risk pill (always on same line, pill never clips) -->
+      <div class="shelter-name-row">
+        <div class="shelter-name" title="{{ s.name }}">{{ s.name }}</div>
+        <span class="risk-pill {{ ml.risk }}">
+          {% if ml.risk == 'high' %}🔴{% elif ml.risk == 'medium' %}🟡{% else %}🟢{% endif %}
+          {{ ml.risk|upper }}
+        </span>
+      </div>
+      <!-- Row 2: District + badges -->
+      <div class="shelter-district">
+        <i data-lucide="map-pin" style="width:11px;height:11px;"></i>
+        {{ s.district }}
+        {% if s.has_medical %}<span style="background:#eff6ff;color:#1d4ed8;padding:0.1rem 0.4rem;border-radius:0.3rem;border:1px solid #bfdbfe;font-size:0.68rem;">🏥 Medical</span>{% endif %}
+        {% if s.is_accessible %}<span style="background:#f0fdf4;color:#166534;padding:0.1rem 0.4rem;border-radius:0.3rem;border:1px solid #bbf7d0;font-size:0.68rem;">♿</span>{% endif %}
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="shelter-card-body">
+      <!-- Occupancy -->
+      <div class="occ-row">
+        <span>Occupancy</span>
+        <span class="occ-value">{{ s.current_occupancy }} / {{ s.max_capacity }} ({{ occ_pct }}%)</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill {% if occ_pct >= 85 %}danger{% elif occ_pct >= 65 %}warn{% else %}safe{% endif %}"
+             style="width:{{ occ_pct }}%"></div>
+      </div>
+
+      <!-- Supply & workload chips -->
+      <div class="chip-row">
+        {% if sup.food %}
+        <span class="chip {{ sup.food.status }}">
+          🍽 Food:
+          {% if sup.food.days_remaining %}{{ sup.food.days_remaining }}d{% else %}–{% endif %}
+        </span>
+        {% endif %}
+
+        {% if sup.water %}
+        <span class="chip {{ sup.water.status }}">
+          💧 Water:
+          {% if sup.water.days_remaining %}{{ sup.water.days_remaining }}d{% else %}–{% endif %}
+        </span>
+        {% endif %}
+
+        <span class="chip {{ wl.status }}">
+          👥 Staff: {{ wl.total_active_volunteers }} vol
+        </span>
+
+        <span class="chip {{ ml.risk }}">
+          ML: {% widthratio ml.probability 1 100 %}%
+        </span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="shelter-card-footer">
+      <div class="last-update">
+        <i data-lucide="clock" style="width:12px;height:12px;"></i>
+        {% if s.latest_status %}
+          Updated {{ s.latest_status.updated_at|timesince }} ago
+        {% else %}
+          No updates yet
+        {% endif %}
+      </div>
+      <a href="{% url 'admin_shelter_detail' s.id %}" class="btn btn-secondary btn-sm">
+        View Details
+      </a>
+    </div>
+
+  </div>
+  {% endwith %}
+  {% endwith %}
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-shelter">
+  <i data-lucide="house" class="empty-shelter-icon"></i>
+  <h3 style="margin-bottom:0.5rem;">No shelters added yet</h3>
+  <p style="color:hsl(var(--muted-foreground));margin-bottom:1.5rem;">Add your first shelter to start tracking real-time status.</p>
+  <a href="{% url 'admin_add_shelter' %}" class="btn btn-primary">
+    <i data-lucide="plus" style="width:16px;height:16px;"></i> Add First Shelter
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}

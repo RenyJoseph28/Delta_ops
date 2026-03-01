@@ -1,0 +1,77 @@
+{% extends "super_admin/base.html" %}
+{% block title %}Shelter Managers — Delta Ops{% endblock %}
+{% block page_title %}Shelter Managers{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'admin_add_manager' %}" class="btn btn-primary">
+  <i data-lucide="user-plus" style="width:16px;height:16px;"></i> Add Manager
+</a>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+  {% for msg in messages %}
+  <div class="badge {% if msg.tags == 'success' %}success{% else %}danger{% endif %}" style="padding:0.5rem 1rem;border-radius:0.5rem;margin-bottom:1rem;display:block;">
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">All Shelter Managers</div>
+    <div class="card-subtitle">Managers can log in and update their assigned shelters.</div>
+  </div>
+
+  {% if managers %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Manager</th>
+          <th>Username</th>
+          <th>District</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Last Login</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in managers %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              <div class="user-avatar">{{ m.full_name|slice:":1"|upper }}</div>
+              <div>
+                <div class="user-name">{{ m.full_name }}</div>
+                <div class="user-email">{{ m.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td><code>{{ m.username }}</code></td>
+          <td>{{ m.district|default:"—" }}</td>
+          <td>{{ m.phone|default:"—" }}</td>
+          <td>
+            <span class="badge {% if m.is_active %}success{% else %}danger{% endif %}">
+              {% if m.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </td>
+          <td style="font-size:0.8rem;color:hsl(var(--muted-foreground));">
+            {% if m.last_login %}{{ m.last_login|timesince }} ago{% else %}Never{% endif %}
+          </td>
+          <td>
+            <a href="{% url 'admin_toggle_manager' m.id %}"
+               class="btn {% if m.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm">
+              {% if m.is_active %}Deactivate{% else %}Activate{% endif %}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">No managers added yet. <a href="{% url 'admin_add_manager' %}">Add the first one.</a></div>
+  {% endif %}
+</div>
+{% endblock %}

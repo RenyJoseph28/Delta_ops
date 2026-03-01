@@ -25,6 +25,7 @@ urlpatterns = [
     path("", include("public.urls")),
     path("user/", include("user.urls")),
     path('super_admin/', include('super_admin.urls')),  
+    path('shelters/', include('shelters.urls')),
 ]
 
 

@@ -19,6 +19,8 @@ from django.utils.timezone import now
 
 from public.models import public_users
 
+from shelters.models import ShelterAlert
+
 
 
 # --- LOGIN / LOGOUT ---
@@ -80,6 +82,8 @@ def super_admin_dashboard(request):
 
     print("alerts_today:", alerts_today)
 
+    shelter_alerts = ShelterAlert.objects.filter(is_resolved=False).count()
+
     # default district for weather widget - we can show statewide or pick one; using Thiruvananthapuram as default
     default_district = request.GET.get("district") or "Thiruvananthapuram"
     weather = fetch_weather_for_city(default_district)
@@ -92,6 +96,7 @@ def super_admin_dashboard(request):
         "recent_users": recent_users,
         "weather_data": weather,
         "default_district": default_district,
+        "shelter_alerts":   shelter_alerts,
     }
     return render(request, "super_admin/dashboard.html", context)
 

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update Shelter Status</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:217 91% 60%; --success:142 76% 36%; --warning:38 92% 50%;
+      --destructive:0 84% 60%; --border:214 32% 91%; --muted:215 16% 47%;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:hsl(210 40% 97%); min-height:100vh; }
+
+    /* Header */
+    .header {
+      background:linear-gradient(135deg,hsl(142 76% 28%),hsl(160 60% 28%));
+      color:white; padding:1rem 1.25rem;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .header-left { display:flex; flex-direction:column; gap:0.1rem; }
+    .header-title { font-weight:700; font-size:1rem; }
+    .header-sub { font-size:0.8rem; opacity:0.8; }
+    .logout-link { font-size:0.8rem; color:rgba(255,255,255,0.75); text-decoration:none; }
+
+    .container { padding:1rem; max-width:480px; margin:0 auto; }
+
+    /* Status banner */
+    .shelter-info {
+      background:white; border-radius:0.875rem; padding:1rem;
+      border:1px solid hsl(var(--border)); margin-bottom:1rem;
+    }
+    .shelter-name { font-weight:700; font-size:1.1rem; }
+    .shelter-district { font-size:0.85rem; color:hsl(var(--muted)); margin-top:0.1rem; }
+
+    .current-status { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.75rem; }
+    .status-chip {
+      padding:0.25rem 0.6rem; border-radius:0.4rem; font-size:0.75rem; font-weight:500;
+      background:hsl(210 40% 95%); color:hsl(var(--muted)); border:1px solid hsl(var(--border));
+    }
+
+    /* Success toast */
+    .toast {
+      background:#dcfce7; border:1px solid #bbf7d0; border-radius:0.625rem;
+      padding:0.875rem 1rem; color:#166534; font-weight:500; font-size:0.875rem;
+      margin-bottom:1rem; display:none; text-align:center;
+    }
+    .toast.show { display:block; }
+
+    /* Form card */
+    .form-card {
+      background:white; border-radius:0.875rem; border:1px solid hsl(var(--border));
+      overflow:hidden; margin-bottom:1rem;
+    }
+
+    .form-card-header {
+      padding:0.875rem 1rem; background:hsl(210 40% 97%);
+      border-bottom:1px solid hsl(var(--border));
+      font-weight:700; font-size:0.925rem; display:flex; align-items:center; gap:0.5rem;
+    }
+
+    .form-card-body { padding:1rem; }
+
+    /* Occupancy slider */
+    .occupancy-display {
+      text-align:center; margin-bottom:1rem;
+    }
+    .occ-number {
+      font-size:3rem; font-weight:700; line-height:1;
+      color:hsl(var(--primary));
+    }
+    .occ-max { font-size:1rem; color:hsl(var(--muted)); }
+    .occ-pct { font-size:0.875rem; font-weight:500; margin-top:0.25rem; }
+
+    input[type=range] {
+      width:100%; height:8px; border-radius:9999px;
+      accent-color:hsl(var(--primary)); cursor:pointer; margin:0.5rem 0;
+    }
+
+    /* Radio button options */
+    .radio-group { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+
+    .radio-option {
+      position:relative;
+    }
+    .radio-option input[type=radio] { position:absolute; opacity:0; }
+    .radio-label {
+      display:block; padding:0.625rem 0.75rem; border-radius:0.625rem;
+      border:2px solid hsl(var(--border)); text-align:center; cursor:pointer;
+      font-size:0.875rem; font-weight:500; transition:all 0.15s;
+      background:white;
+    }
+    .radio-option input[type=radio]:checked + .radio-label {
+      border-color:hsl(var(--primary));
+      background:hsla(217,91%,60%,0.07);
+      color:hsl(var(--primary));
+    }
+    .radio-label.ok     { }
+    .radio-label.low    { }
+    .radio-label.crit   { }
+    .radio-label.out    { }
+
+    .radio-option input[type=radio]:checked + .radio-label.ok   { border-color:hsl(var(--success)); background:hsla(142,76%,36%,0.07); color:hsl(var(--success)); }
+    .radio-option input[type=radio]:checked + .radio-label.low  { border-color:hsl(var(--warning)); background:hsla(38,92%,50%,0.07);  color:hsl(38 70% 35%); }
+    .radio-option input[type=radio]:checked + .radio-label.crit { border-color:hsl(var(--destructive)); background:hsla(0,84%,60%,0.07); color:hsl(var(--destructive)); }
+    .radio-option input[type=radio]:checked + .radio-label.out  { border-color:hsl(var(--destructive)); background:hsla(0,84%,60%,0.1); color:hsl(var(--destructive)); }
+
+    /* Toggle */
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; }
+    .toggle-label { font-size:0.925rem; font-weight:500; }
+    .toggle { position:relative; width:48px; height:26px; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-slider {
+      position:absolute; inset:0; border-radius:9999px;
+      background:hsl(var(--border)); cursor:pointer; transition:0.2s;
+    }
+    .toggle-slider:before {
+      content:""; position:absolute; left:3px; top:3px;
+      width:20px; height:20px; border-radius:50%; background:white; transition:0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background:hsl(var(--success)); }
+    .toggle input:checked + .toggle-slider:before { transform:translateX(22px); }
+
+    /* Notes */
+    textarea.form-control {
+      width:100%; padding:0.75rem; border:1px solid hsl(var(--border));
+      border-radius:0.625rem; font-family:inherit; font-size:0.875rem;
+      resize:vertical; min-height:80px;
+    }
+    textarea.form-control:focus { outline:none; border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsla(217,91%,60%,0.1); }
+
+    /* Submit */
+    .submit-btn {
+      width:100%; padding:1rem; border-radius:0.75rem;
+      background:linear-gradient(135deg,hsl(142 76% 36%),hsl(160 60% 32%));
+      color:white; border:none; font-size:1rem; font-weight:700;
+      cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .submit-btn:hover { transform:translateY(-1px); box-shadow:0 4px 15px rgba(0,0,0,0.2); }
+    .submit-btn:active { transform:translateY(0); }
+
+    .network-badge {
+      text-align:center; font-size:0.75rem; color:hsl(var(--muted));
+      margin-bottom:0.75rem; display:flex; align-items:center; justify-content:center; gap:0.4rem;
+    }
+    .network-dot { width:8px; height:8px; border-radius:50%; background:hsl(var(--success)); }
+    .network-dot.offline { background:hsl(var(--destructive)); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-title">{{ shelter.name }}</div>
+    <div class="header-sub">Logged in as: {{ volunteer.name }} · {{ volunteer.get_task_display }}</div>
+  </div>
+  <a href="{% url 'volunteer_logout' %}" class="logout-link">Logout</a>
+</div>
+
+<div class="container">
+
+  <!-- Network status -->
+  <div class="network-badge" id="networkBadge">
+    <span class="network-dot" id="networkDot"></span>
+    <span id="networkText">Online</span>
+  </div>
+
+  <!-- Success toast -->
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="toast show">✅ {{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Current shelter status -->
+  <div class="shelter-info">
+    <div class="shelter-name">{{ shelter.name }}</div>
+    <div class="shelter-district">{{ shelter.district }}</div>
+    {% if latest %}
+    <div class="current-status">
+      <span class="status-chip">👥 {{ latest.current_occupancy }} / {{ shelter.max_capacity }} people</span>
+      <span class="status-chip">🍽 Food: {{ latest.food_status }}</span>
+      <span class="status-chip">💧 Water: {{ latest.water_status }}</span>
+      {% if latest.medical_support %}<span class="status-chip">🏥 Medical</span>{% endif %}
+      <span class="status-chip" style="font-size:0.7rem;">Updated {{ latest.updated_at|timesince }} ago</span>
+    </div>
+    {% else %}
+    <div style="margin-top:0.5rem;font-size:0.85rem;color:hsl(var(--muted));">No updates submitted yet. Be the first!</div>
+    {% endif %}
+  </div>
+
+  <!-- Update Form -->
+  <form method="POST" id="updateForm">
+    {% csrf_token %}
+
+    <!-- Occupancy -->
+    <div class="form-card">
+      <div class="form-card-header">👥 Current Occupancy</div>
+      <div class="form-card-body">
+        <div class="occupancy-display">
+          <div><span class="occ-number" id="occDisplay">{{ latest.current_occupancy|default:0 }}</span>
+            <span class="occ-max"> / {{ shelter.max_capacity }}</span>
+          </div>
+          <div class="occ-pct" id="occPct">
+            {% with pct=shelter.occupancy_pct %}{{ pct }}% Full{% endwith %}
+          </div>
+        </div>
+        <input type="range" name="current_occupancy" id="occSlider"
+               min="0" max="{{ shelter.max_capacity }}"
+               value="{{ latest.current_occupancy|default:0 }}"
+               oninput="updateOcc(this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:hsl(var(--muted));">
+          <span>0</span><span>{{ shelter.max_capacity }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Food Status -->
+    <div class="form-card">
+      <div class="form-card-header">🍽️ Food Status</div>
+      <div class="form-card-body">
+        <div class="radio-group">
+          {% with cur=latest.food_status|default:"ok" %}
+          <div class="radio-option">
+            <input type="radio" name="food_status" id="food_ok" value="ok" {% if cur == "ok" %}checked{% endif %}>
+            <label for="food_ok" class="radio-label ok">✅ OK</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="food_status" id="food_low" value="low" {% if cur == "low" %}checked{% endif %}>
+            <label for="food_low" class="radio-label low">⚠️ Low</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="food_status" id="food_critical" value="critical" {% if cur == "critical" %}checked{% endif %}>
+            <label for="food_critical" class="radio-label crit">🚨 Critical</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="food_status" id="food_out" value="out" {% if cur == "out" %}checked{% endif %}>
+            <label for="food_out" class="radio-label out">❌ Out</label>
+          </div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Water Status -->
+    <div class="form-card">
+      <div class="form-card-header">💧 Water Status</div>
+      <div class="form-card-body">
+        <div class="radio-group">
+          {% with cur=latest.water_status|default:"ok" %}
+          <div class="radio-option">
+            <input type="radio" name="water_status" id="water_ok" value="ok" {% if cur == "ok" %}checked{% endif %}>
+            <label for="water_ok" class="radio-label ok">✅ OK</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="water_status" id="water_low" value="low" {% if cur == "low" %}checked{% endif %}>
+            <label for="water_low" class="radio-label low">⚠️ Low</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="water_status" id="water_critical" value="critical" {% if cur == "critical" %}checked{% endif %}>
+            <label for="water_critical" class="radio-label crit">🚨 Critical</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="water_status" id="water_out" value="out" {% if cur == "out" %}checked{% endif %}>
+            <label for="water_out" class="radio-label out">❌ Out</label>
+          </div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Medical Support -->
+    <div class="form-card">
+      <div class="form-card-header">🏥 Medical Support</div>
+      <div class="form-card-body">
+        <div class="toggle-row">
+          <span class="toggle-label">Medical team present and available</span>
+          <label class="toggle">
+            <input type="checkbox" name="medical_support" id="medicalToggle"
+                   {% if latest.medical_support %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-card">
+      <div class="form-card-header">📝 Notes (Optional)</div>
+      <div class="form-card-body">
+        <textarea name="notes" class="form-control"
+                  placeholder="Any urgent issues, needs, or observations..."></textarea>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn">
+      Submit Update →
+    </button>
+
+    <p style="text-align:center;font-size:0.75rem;color:hsl(var(--muted));margin-top:0.75rem;">
+      Update will be saved immediately and synced to the main system.
+    </p>
+  </form>
+
+</div>
+
+<script>
+  const maxCap = {{ shelter.max_capacity }};
+
+  function updateOcc(val) {
+    document.getElementById('occDisplay').textContent = val;
+    const pct = Math.round((val / maxCap) * 100);
+    document.getElementById('occPct').textContent = pct + '% Full';
+  }
+
+  // Network status indicator
+  function updateNetworkStatus() {
+    const dot  = document.getElementById('networkDot');
+    const text = document.getElementById('networkText');
+    if (navigator.onLine) {
+      dot.className  = 'network-dot';
+      text.textContent = 'Online';
+    } else {
+      dot.className  = 'network-dot offline';
+      text.textContent = 'Offline — data will sync when connected';
+    }
+  }
+  window.addEventListener('online',  updateNetworkStatus);
+  window.addEventListener('offline', updateNetworkStatus);
+  updateNetworkStatus();
+</script>
+
+</body>
+</html>

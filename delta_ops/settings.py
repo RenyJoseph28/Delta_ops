@@ -41,7 +41,8 @@ INSTALLED_APPS = [
    
     'public',
     'user',
-    'super_admin'
+    'super_admin',
+    'shelters',
   
 ]
 

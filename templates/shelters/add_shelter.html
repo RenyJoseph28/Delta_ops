@@ -1,0 +1,130 @@
+{% extends "super_admin/base.html" %}
+{% block title %}Add Shelter — Delta Ops{% endblock %}
+{% block page_title %}Add New Shelter{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'admin_shelter_dashboard' %}" class="btn btn-secondary">
+  <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:900px){ .form-grid{grid-template-columns:1fr;} }
+
+  .form-group { display:flex; flex-direction:column; gap:0.4rem; }
+  .form-label { font-size:0.875rem; font-weight:500; }
+  .form-control {
+    padding:0.575rem 0.875rem;
+    border:1px solid hsl(var(--border));
+    border-radius:0.5rem;
+    font-size:0.875rem;
+    font-family:inherit;
+    background:white;
+    transition:border-color 0.2s,box-shadow 0.2s;
+    width:100%;
+  }
+  .form-control:focus { outline:none; border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsla(217,91%,60%,0.1); }
+  .form-hint { font-size:0.75rem; color:hsl(var(--muted-foreground)); }
+  .form-check-row { display:flex; align-items:center; gap:0.5rem; }
+  .form-check-row input[type=checkbox] { width:16px; height:16px; cursor:pointer; }
+  .coord-note { font-size:0.8rem; color:hsl(var(--success)); margin-top:0.25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;">
+  <div class="card-header">
+    <div class="card-title">Shelter Details</div>
+    <div class="card-subtitle">Coordinates auto-fill from district if left blank.</div>
+  </div>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="form-grid" style="margin-bottom:1rem;">
+      <div class="form-group">
+        <label class="form-label">Shelter Name *</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. St. Mary's School Relief Camp" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">District *</label>
+        <select name="district" id="districtSelect" class="form-control" required onchange="autoFillCoords(this.value)">
+          <option value="">Select District</option>
+          {% for d in districts %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">Address *</label>
+        <input type="text" name="address" class="form-control" placeholder="Full address of the shelter" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Latitude</label>
+        <input type="number" step="any" name="latitude" id="latInput" class="form-control" placeholder="Auto-filled from district">
+        <span class="form-hint">Leave blank to use district centre coordinates.</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Longitude</label>
+        <input type="number" step="any" name="longitude" id="lonInput" class="form-control" placeholder="Auto-filled from district">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Maximum Capacity *</label>
+        <input type="number" name="max_capacity" class="form-control" placeholder="e.g. 500" min="1" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Contact Phone</label>
+        <input type="text" name="contact_phone" class="form-control" placeholder="+91 XXXXX XXXXX">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Assign Manager</label>
+        <select name="manager_id" class="form-control">
+          <option value="">— No Manager —</option>
+          {% for m in managers %}
+          <option value="{{ m.id }}">{{ m.full_name }} ({{ m.district|default:"All" }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="justify-content:flex-end;padding-top:0.5rem;">
+        <div class="form-check-row">
+          <input type="checkbox" name="has_medical" id="hasMedical">
+          <label for="hasMedical" class="form-label" style="cursor:pointer;">Has Medical Support</label>
+        </div>
+        <div class="form-check-row" style="margin-top:0.5rem;">
+          <input type="checkbox" name="is_accessible" id="isAccessible" checked>
+          <label for="isAccessible" class="form-label" style="cursor:pointer;">Wheelchair / Differently-Abled Accessible</label>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;">
+      <button type="submit" class="btn btn-primary">
+        <i data-lucide="save" style="width:16px;height:16px;"></i> Save Shelter
+      </button>
+      <a href="{% url 'admin_shelter_dashboard' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const COORDS = {{ district_coords|safe }};
+  function autoFillCoords(district) {
+    if (!district || !COORDS[district]) return;
+    const [lat, lon] = COORDS[district];
+    document.getElementById('latInput').value = lat;
+    document.getElementById('lonInput').value = lon;
+  }
+</script>
+{% endblock %}
