@@ -429,6 +429,9 @@ function plotSheltersOnMap(recommendations) {
         <small>${r.occupancy_pct}% full · ${r.distance_km}km away</small>
       `);
     shelterMarkers.push(m);
+
+    // ── Draw route line from origin to this shelter ──
+    drawRoute(originLat, originLon, r.latitude, r.longitude, i);
   });
 
   // Fit map to show both origin and results
@@ -437,6 +440,32 @@ function plotSheltersOnMap(recommendations) {
       [[originLat, originLon], ...recommendations.map(r => [r.latitude, r.longitude])]
     );
     map.fitBounds(bounds, { padding: [40, 40] });
+  }
+}
+
+// Route line colours per rank
+const routeColors = ['#ef4444', '#3b82f6', '#8b5cf6'];
+let routeLines = [];
+
+async function drawRoute(oLat, oLon, dLat, dLon, index) {
+  try {
+    const url = `http://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${dLon},${dLat}?overview=full&geometries=geojson`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (data.code !== 'Ok') return;
+
+    const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+    const line = L.polyline(coords, {
+      color: routeColors[index] || '#6b7280',
+      weight: 4,
+      opacity: 0.75,
+      dashArray: index === 0 ? null : '8, 6'  // solid for rank 1, dashed for others
+    }).addTo(map);
+
+    routeLines.push(line);
+  } catch(e) {
+    console.warn('Route draw failed:', e);
   }
 }
 

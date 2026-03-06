@@ -317,7 +317,7 @@ with open(os.path.join(MODEL_DIR, "kerala_flood_model.pkl"), "rb") as f:
 with open(os.path.join(MODEL_DIR, "model_config.pkl"), "rb") as f:
     config = pickle.load(f)
 
-
+print(type(model))
 # ==========================================================
 # 📌 CONFIG VARIABLES
 # ==========================================================
@@ -502,15 +502,19 @@ def predict_flood_risk(district, weather, demo_mode=True, debug=False):
     # 7️⃣ RETURN RESPONSE
     # ----------------------------------------------------------
 
+    # ✅ NEW — reads actual class order from the model itself
+    class_labels = [target_encoder.inverse_transform([c])[0] for c in model.classes_]
+    confidence = {label: round(prob * 100, 2) for label, prob in zip(class_labels, probs)}
+    confidence.setdefault("Low", 0.0)
+    confidence.setdefault("Medium", 0.0)
+    confidence.setdefault("High", 0.0)
+
+    print("Model class order:", class_labels)
+    print("Confidence:", confidence)
+
     return {
         "risk": risk_label,
-        "confidence": {
-            "Low": round(probs[0] * 100, 2),
-            "Medium": round(probs[1] * 100, 2),
-            "High": round(probs[2] * 100, 2),
-        },
+        "confidence": confidence,
         "features": features,
-
-        # ✅ Return final manipulated weather also
         "final_weather": weather
     }
