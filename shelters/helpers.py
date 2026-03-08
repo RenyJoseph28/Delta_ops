@@ -94,30 +94,46 @@ def osrm_road_distance(origin_lat, origin_lon, dest_lat, dest_lon):
     Falls back to Haversine if API fails.
     """
     import urllib.request
+    import urllib.error
     import json as _json
 
     try:
+        # NOTE: OSRM expects lon,lat order (not lat,lon)
+        # Only valid params: overview, alternatives, steps, geometries, annotations
         url = (
             f"http://router.project-osrm.org/route/v1/driving/"
-            f"{origin_lon},{origin_lat};{dest_lon},{dest_lat}"
-            f"?overview=false&timeout=5"
+            f"{float(origin_lon)},{float(origin_lat)};"
+            f"{float(dest_lon)},{float(dest_lat)}"
+            f"?overview=false"
         )
-        req = urllib.request.Request(url, headers={"User-Agent": "DeltaOps/1.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = _json.loads(resp.read())
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "DeltaOps/1.0",
+                "Accept": "application/json",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))  # ← decode bytes
+
         if data.get("code") == "Ok":
-            route = data["routes"][0]
-            dist_km  = round(route["distance"] / 1000, 1)
-            dur_min  = round(route["duration"] / 60, 0)
+            route   = data["routes"][0]
+            dist_km = round(route["distance"] / 1000, 1)
+            dur_min = round(route["duration"] / 60)
             return dist_km, int(dur_min)
+        else:
+            print(f"  [OSRM] ⚠️  Response code: {data.get('code')} — {data.get('message','')}")
+
+    except urllib.error.HTTPError as e:
+        print(f"  [OSRM] ⚠️  HTTP {e.code} {e.reason} — falling back to Haversine")
+    except urllib.error.URLError as e:
+        print(f"  [OSRM] ⚠️  URL Error: {e.reason} — falling back to Haversine")
     except Exception as e:
-        print(f"  [OSRM] ⚠️  API failed ({e}) — falling back to Haversine")
+        print(f"  [OSRM] ⚠️  Error ({e}) — falling back to Haversine")
 
-    # Fallback: straight-line with ~1.3x road factor
+    # Fallback: straight-line × 1.8 (Kerala hill roads ratio)
     straight = haversine_km(origin_lat, origin_lon, dest_lat, dest_lon)
-    return round(straight * 1.3, 1), None
-
-
+    return round(straight * 1.8, 1), None
 # ─────────────────────────────────────────────
 # 1. SHELTER RECOMMENDATION
 # ─────────────────────────────────────────────
@@ -165,10 +181,11 @@ def get_shelter_recommendations(origin_lat: float, origin_lon: float,
 
         # ── Composite score ──
         # Normalise road distance: 0km=1.0, 80km=0.0  (wider range than before)
-        dist_score  = max(0, 1 - road_km / 80)
+        # NEW — distance is primary priority
+        dist_score  = max(0, 1 - road_km / 100)  # wider range for Kerala distances
         avail_score = 1 - (occ_pct / 100)
-        bonus       = (0.1 if s.is_accessible else 0) + (0.1 if s.has_medical else 0)
-        composite   = (dist_score * 0.45) + (avail_score * 0.45) + bonus
+        bonus       = (0.05 if s.is_accessible else 0) + (0.05 if s.has_medical else 0)
+        composite   = (dist_score * 0.65) + (avail_score * 0.30) + bonus
 
         scored.append({
             "shelter":        s,
@@ -182,6 +199,9 @@ def get_shelter_recommendations(origin_lat: float, origin_lon: float,
         })
 
     scored.sort(key=lambda x: x["composite"], reverse=True)
+
+    print(f"  [DISTANCE] {s.name}: straight={straight_km}km → OSRM road={road_km}km")
+
     return scored[:top_n]
 
 

@@ -29,7 +29,52 @@
   .form-hint { font-size:0.75rem; color:hsl(var(--muted-foreground)); }
   .form-check-row { display:flex; align-items:center; gap:0.5rem; }
   .form-check-row input[type=checkbox] { width:16px; height:16px; cursor:pointer; }
-  .coord-note { font-size:0.8rem; color:hsl(var(--success)); margin-top:0.25rem; }
+
+  /* ── Place search ── */
+  .place-search-wrapper { position:relative; }
+  .place-results {
+    position:absolute; top:100%; left:0; right:0; z-index:500;
+    background:white; border:1px solid hsl(var(--border)); border-radius:0.5rem;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;
+    display:none;
+  }
+  .place-result-item {
+    padding:0.55rem 0.875rem; cursor:pointer; font-size:0.82rem;
+    border-bottom:1px solid #f1f5f9; display:flex; align-items:flex-start; gap:0.5rem;
+  }
+  .place-result-item:last-child { border:none; }
+  .place-result-item:hover { background:#f8fafc; }
+  .place-result-name { font-weight:600; font-size:0.82rem; }
+  .place-result-addr { font-size:0.71rem; color:#64748b; margin-top:0.1rem; }
+
+  /* ── Coord confirmation chip ── */
+  .coord-chip {
+    display:none; align-items:center; gap:0.5rem;
+    background:#f0fdf4; border:1px solid #bbf7d0;
+    border-radius:0.5rem; padding:0.5rem 0.75rem;
+    font-size:0.78rem; margin-top:0.25rem;
+  }
+  .coord-chip.visible { display:flex; }
+  .coord-chip-name { font-weight:600; color:#166534; }
+  .coord-chip-val  { font-family:monospace; color:#15803d; font-size:0.72rem; }
+
+  /* ── Coord fields locked state ── */
+  .coord-locked { background:#f8fafc !important; color:#475569; }
+  .unlock-btn {
+    font-size:0.72rem; color:#3b82f6; background:none; border:none;
+    cursor:pointer; text-decoration:underline; align-self:flex-start;
+    padding:0; margin-top:0.1rem;
+  }
+  .unlock-btn:hover { color:#1d4ed8; }
+
+  /* ── Search loading ── */
+  .search-spinner {
+    position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);
+    width:14px; height:14px; border:2px solid #e2e8f0;
+    border-top-color:#3b82f6; border-radius:50%;
+    animation:spin 0.6s linear infinite; display:none;
+  }
+  @keyframes spin { to { transform:translateY(-50%) rotate(360deg); } }
 </style>
 {% endblock %}
 
@@ -37,21 +82,24 @@
 <div class="card" style="max-width:900px;">
   <div class="card-header">
     <div class="card-title">Shelter Details</div>
-    <div class="card-subtitle">Coordinates auto-fill from district if left blank.</div>
+    <div class="card-subtitle">Search the shelter's location by name to auto-fill exact coordinates.</div>
   </div>
 
   <form method="POST">
     {% csrf_token %}
 
     <div class="form-grid" style="margin-bottom:1rem;">
+
+      <!-- Name -->
       <div class="form-group">
         <label class="form-label">Shelter Name *</label>
         <input type="text" name="name" class="form-control" placeholder="e.g. St. Mary's School Relief Camp" required>
       </div>
 
+      <!-- District -->
       <div class="form-group">
         <label class="form-label">District *</label>
-        <select name="district" id="districtSelect" class="form-control" required onchange="autoFillCoords(this.value)">
+        <select name="district" id="districtSelect" class="form-control" required onchange="onDistrictChange(this.value)">
           <option value="">Select District</option>
           {% for d in districts %}
           <option value="{{ d }}">{{ d }}</option>
@@ -59,32 +107,58 @@
         </select>
       </div>
 
+      <!-- Address with place search -->
       <div class="form-group" style="grid-column:1/-1;">
-        <label class="form-label">Address *</label>
-        <input type="text" name="address" class="form-control" placeholder="Full address of the shelter" required>
+        <label class="form-label">📍 Search Shelter Location</label>
+        <div class="place-search-wrapper">
+          <input type="text" id="placeSearch" name="address" class="form-control"
+                 placeholder="Type shelter name or address e.g. 'Painavu Community Hall, Idukki'"
+                 autocomplete="off" required>
+          <div class="search-spinner" id="searchSpinner"></div>
+          <div class="place-results" id="placeResults"></div>
+        </div>
+        <span class="form-hint">Type the shelter's address → select from results → coordinates fill automatically</span>
+
+        <!-- Confirmation chip shown after selection -->
+        <div class="coord-chip" id="coordChip">
+          <span>📍</span>
+          <div>
+            <div class="coord-chip-name" id="chipName"></div>
+            <div class="coord-chip-val" id="chipCoords"></div>
+          </div>
+        </div>
       </div>
 
+      <!-- Lat / Lon (auto-filled, can be manually overridden) -->
       <div class="form-group">
         <label class="form-label">Latitude</label>
-        <input type="number" step="any" name="latitude" id="latInput" class="form-control" placeholder="Auto-filled from district">
-        <span class="form-hint">Leave blank to use district centre coordinates.</span>
+        <input type="number" step="any" name="latitude" id="latInput"
+               class="form-control coord-locked" placeholder="Auto-filled from location search" readonly>
+        <button type="button" class="unlock-btn" id="unlockBtn" onclick="unlockCoords()" style="display:none;">
+          ✏️ Edit manually
+        </button>
+        <span class="form-hint" id="coordHint">Select a location above to fill coordinates.</span>
       </div>
 
       <div class="form-group">
         <label class="form-label">Longitude</label>
-        <input type="number" step="any" name="longitude" id="lonInput" class="form-control" placeholder="Auto-filled from district">
+        <input type="number" step="any" name="longitude" id="lonInput"
+               class="form-control coord-locked" placeholder="Auto-filled from location search" readonly>
       </div>
 
+      <!-- Capacity -->
       <div class="form-group">
         <label class="form-label">Maximum Capacity *</label>
         <input type="number" name="max_capacity" class="form-control" placeholder="e.g. 500" min="1" required>
       </div>
 
+      <!-- Phone -->
       <div class="form-group">
         <label class="form-label">Contact Phone</label>
         <input type="text" name="contact_phone" class="form-control" placeholder="+91 XXXXX XXXXX">
       </div>
 
+      <!-- Manager -->
       <div class="form-group">
         <label class="form-label">Assign Manager</label>
         <select name="manager_id" class="form-control">
@@ -95,6 +169,7 @@
         </select>
       </div>
 
+      <!-- Checkboxes -->
       <div class="form-group" style="justify-content:flex-end;padding-top:0.5rem;">
         <div class="form-check-row">
           <input type="checkbox" name="has_medical" id="hasMedical">
@@ -105,6 +180,7 @@
           <label for="isAccessible" class="form-label" style="cursor:pointer;">Wheelchair / Differently-Abled Accessible</label>
         </div>
       </div>
+
     </div>
 
     <div style="display:flex;gap:0.75rem;">
@@ -119,12 +195,130 @@
 
 {% block extra_js %}
 <script>
-  const COORDS = {{ district_coords|safe }};
-  function autoFillCoords(district) {
-    if (!district || !COORDS[district]) return;
-    const [lat, lon] = COORDS[district];
-    document.getElementById('latInput').value = lat;
-    document.getElementById('lonInput').value = lon;
+const DISTRICT_COORDS = {{ district_coords|safe }};
+
+// ── District change: auto-fill coords only if no place selected yet ──
+function onDistrictChange(district) {
+  const lat = document.getElementById('latInput').value;
+  if (!lat && district && DISTRICT_COORDS[district]) {
+    const [dlat, dlon] = DISTRICT_COORDS[district];
+    // Don't auto-fill — just update search placeholder to help user
+    document.getElementById('placeSearch').placeholder =
+      `Type shelter address in ${district}...`;
   }
+}
+
+// ── Place search (Nominatim) ──────────────────────────────────
+let searchTimeout;
+const placeInput   = document.getElementById('placeSearch');
+const placeResults = document.getElementById('placeResults');
+const spinner      = document.getElementById('searchSpinner');
+
+placeInput.addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const q = this.value.trim();
+  if (q.length < 3) { placeResults.style.display = 'none'; return; }
+  spinner.style.display = 'block';
+  searchTimeout = setTimeout(() => doSearch(q), 450);
+});
+
+async function doSearch(query) {
+  // Bias search to Kerala
+  const district = document.getElementById('districtSelect').value;
+  const biasQ    = district ? `${query} ${district} Kerala India` : `${query} Kerala India`;
+  const url      = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(biasQ)}&format=json&limit=6&countrycodes=in`;
+
+  try {
+    const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await resp.json();
+    spinner.style.display = 'none';
+    renderResults(data);
+  } catch(e) {
+    spinner.style.display = 'none';
+    console.error('Nominatim error:', e);
+  }
+}
+
+function renderResults(results) {
+  if (!results.length) {
+    placeResults.innerHTML = `
+      <div class="place-result-item" style="color:#64748b;cursor:default;">
+        No results found. Try a more specific name.
+      </div>`;
+    placeResults.style.display = 'block';
+    return;
+  }
+
+  placeResults.innerHTML = results.map(r => {
+    const name = r.display_name.split(',')[0];
+    const addr = r.display_name.split(',').slice(1, 4).join(', ');
+    return `
+      <div class="place-result-item"
+           onclick="selectPlace(${r.lat}, ${r.lon}, '${r.display_name.replace(/'/g,"\\'")}')">
+        <span style="flex-shrink:0;margin-top:2px;">📍</span>
+        <div>
+          <div class="place-result-name">${name}</div>
+          <div class="place-result-addr">${addr}</div>
+        </div>
+      </div>`;
+  }).join('');
+  placeResults.style.display = 'block';
+}
+
+function selectPlace(lat, lon, fullName) {
+  placeResults.style.display = 'none';
+
+  const shortName = fullName.split(',')[0];
+
+  // Fill address input with short name
+  placeInput.value = shortName;
+
+  // Fill lat/lon
+  document.getElementById('latInput').value = parseFloat(lat).toFixed(6);
+  document.getElementById('lonInput').value = parseFloat(lon).toFixed(6);
+
+  // Show confirmation chip
+  document.getElementById('chipName').textContent   = shortName;
+  document.getElementById('chipCoords').textContent = `Lat: ${parseFloat(lat).toFixed(6)}  ·  Lon: ${parseFloat(lon).toFixed(6)}`;
+  document.getElementById('coordChip').classList.add('visible');
+
+  // Show unlock button
+  document.getElementById('unlockBtn').style.display = 'inline';
+  document.getElementById('coordHint').textContent   = '✅ Coordinates set from location search.';
+
+  // Auto-select district if not set
+  const districtSel = document.getElementById('districtSelect');
+  if (!districtSel.value) {
+    // Try to guess district from full name
+    const lower = fullName.toLowerCase();
+    const options = districtSel.options;
+    for (let i = 0; i < options.length; i++) {
+      if (lower.includes(options[i].value.toLowerCase())) {
+        districtSel.value = options[i].value;
+        break;
+      }
+    }
+  }
+}
+
+// ── Allow manual override ──
+function unlockCoords() {
+  const lat = document.getElementById('latInput');
+  const lon = document.getElementById('lonInput');
+  lat.readOnly = false;
+  lon.readOnly = false;
+  lat.classList.remove('coord-locked');
+  lon.classList.remove('coord-locked');
+  lat.focus();
+  document.getElementById('unlockBtn').style.display = 'none';
+  document.getElementById('coordHint').textContent = 'Manual entry mode — enter exact coordinates.';
+}
+
+// ── Close dropdown on outside click ──
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.place-search-wrapper')) {
+    placeResults.style.display = 'none';
+  }
+});
 </script>
 {% endblock %}
