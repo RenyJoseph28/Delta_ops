@@ -199,6 +199,33 @@
   </div>
 
 </div>
+
+<!-- Directions Panel -->
+<div id="directionsPanel" style="
+  display:none;
+  position:fixed;
+  top:80px; right:20px;
+  width:320px;
+  max-height:70vh;
+  background:white;
+  border-radius:0.875rem;
+  box-shadow:0 12px 40px rgba(0,0,0,0.18);
+  border:1px solid #e2e8f0;
+  z-index:9999;
+  overflow:hidden;
+  font-family:'DM Sans',sans-serif;
+">
+  <div style="padding:1rem;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;">
+    <div>
+      <div id="dirPanelTitle" style="font-weight:700;font-size:0.9rem;"></div>
+      <div id="dirPanelSummary" style="font-size:0.75rem;color:#64748b;margin-top:0.15rem;"></div>
+    </div>
+    <button onclick="document.getElementById('directionsPanel').style.display='none'"
+      style="border:none;background:none;cursor:pointer;font-size:1.1rem;color:#94a3b8;padding:0.25rem;">✕</button>
+  </div>
+  <div id="dirStepsList" style="overflow-y:auto;max-height:calc(70vh - 80px);padding:0.5rem 0;"></div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -334,6 +361,10 @@ async function findShelters() {
   shelterMarkers.forEach(m => map.removeLayer(m));
   shelterMarkers = [];
 
+  routeLines.forEach(l => map.removeLayer(l));
+  routeLines = [];
+  window._routeSteps = {};
+
   const url = `/shelters/admin/shelters/recommendations/?lat=${originLat}&lon=${originLon}${district ? '&district='+district : ''}`;
   const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
 
@@ -430,8 +461,16 @@ function plotSheltersOnMap(recommendations) {
       `);
     shelterMarkers.push(m);
 
+    // ── Click marker → show directions ──
+    m.on('click', () => {
+      if (window._routeSteps && window._routeSteps[i]) {
+        const {name, steps, km, min} = window._routeSteps[i];
+        showDirections(name, steps, km, min);
+      }
+    });
+
     // ── Draw route line from origin to this shelter ──
-    drawRoute(originLat, originLon, r.latitude, r.longitude, i);
+    drawRoute(originLat, originLon, r.latitude, r.longitude, i, r.name);
   });
 
   // Fit map to show both origin and results
@@ -447,23 +486,34 @@ function plotSheltersOnMap(recommendations) {
 const routeColors = ['#ef4444', '#3b82f6', '#8b5cf6'];
 let routeLines = [];
 
-async function drawRoute(oLat, oLon, dLat, dLon, index) {
+async function drawRoute(oLat, oLon, dLat, dLon, index, shelterName) {
   try {
-    const url = `http://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${dLon},${dLat}?overview=full&geometries=geojson`;
+    const url = `http://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${dLon},${dLat}?overview=full&geometries=geojson&steps=true`;
     const resp = await fetch(url);
     const data = await resp.json();
 
     if (data.code !== 'Ok') return;
 
-    const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+    const route   = data.routes[0];
+    const coords  = route.geometry.coordinates.map(c => [c[1], c[0]]);
+    const steps   = route.legs[0].steps;
+    const totalKm = (route.distance / 1000).toFixed(1);
+    const totalMin = Math.round(route.duration / 60);
+
     const line = L.polyline(coords, {
       color: routeColors[index] || '#6b7280',
       weight: 4,
       opacity: 0.75,
-      dashArray: index === 0 ? null : '8, 6'  // solid for rank 1, dashed for others
+      dashArray: index === 0 ? null : '8, 6'
     }).addTo(map);
 
+    // Click line → show directions panel
+    line.on('click', () => showDirections(shelterName, steps, totalKm, totalMin));
+
     routeLines.push(line);
+
+    window._routeSteps[index] = { name: shelterName, steps, km: totalKm, min: totalMin };
+
   } catch(e) {
     console.warn('Route draw failed:', e);
   }
@@ -477,5 +527,67 @@ if (originLat && originLon) {
     plotSheltersOnMap(SERVER_RECOMMENDATIONS);
   }
 }
+
+// Direction icons based on OSRM maneuver type
+function getManeuverIcon(type, modifier) {
+  if (type === 'depart')       return '🚦';
+  if (type === 'arrive')       return '🏁';
+  if (type === 'turn') {
+    if (modifier === 'left')        return '⬅️';
+    if (modifier === 'right')       return '➡️';
+    if (modifier === 'sharp left')  return '↩️';
+    if (modifier === 'sharp right') return '↪️';
+    if (modifier === 'slight left') return '↖️';
+    if (modifier === 'slight right')return '↗️';
+    if (modifier === 'uturn')       return '🔄';
+  }
+  if (type === 'roundabout')   return '🔄';
+  if (type === 'merge')        return '🔀';
+  if (type === 'fork') {
+    if (modifier && modifier.includes('left'))  return '↖️';
+    if (modifier && modifier.includes('right')) return '↗️';
+  }
+  return '⬆️';
+}
+
+window._routeSteps = {};
+
+function showDirections(shelterName, steps, totalKm, totalMin) {
+  const panel   = document.getElementById('directionsPanel');
+  const title   = document.getElementById('dirPanelTitle');
+  const summary = document.getElementById('dirPanelSummary');
+  const list    = document.getElementById('dirStepsList');
+
+  title.textContent   = `🗺️ Route to ${shelterName}`;
+  summary.textContent = `${totalKm} km · 🚗 ${totalMin} min`;
+
+  list.innerHTML = steps.map((step, i) => {
+    const icon     = getManeuverIcon(step.maneuver.type, step.maneuver.modifier);
+    const name     = step.name || (step.maneuver.type === 'arrive' ? 'Destination' : 'Continue');
+    const distM    = step.distance;
+    const distText = distM >= 1000
+      ? `${(distM/1000).toFixed(1)} km`
+      : `${Math.round(distM)} m`;
+
+    return `
+      <div style="
+        display:flex; align-items:flex-start; gap:0.75rem;
+        padding:0.6rem 1rem;
+        border-bottom:1px solid #f8fafc;
+        ${i === 0 ? 'background:#f0fdf4;' : ''}
+        ${step.maneuver.type === 'arrive' ? 'background:#fef2f2;' : ''}
+      ">
+        <span style="font-size:1.1rem;flex-shrink:0;margin-top:0.1rem;">${icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:0.82rem;font-weight:600;color:#1e293b;">${name}</div>
+          ${step.maneuver.type !== 'arrive' ? `<div style="font-size:0.72rem;color:#64748b;margin-top:0.1rem;">${distText}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  panel.style.display = 'block';
+}
+
 </script>
 {% endblock %}
