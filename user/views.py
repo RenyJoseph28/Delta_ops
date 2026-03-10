@@ -24,3 +24,80 @@ def user_alerts(request):
         "alerts": alerts,
         "user_district": user.district
     })
+
+
+# --- SHELTER FINDER VIEW ---
+def shelter_finder(request):
+    """
+    Public-facing shelter finder page.
+    The page itself is static — shelter data is loaded via AJAX
+    from the existing /shelters/admin/shelters/recommendations/ endpoint.
+    """
+    if "user_id" not in request.session:
+        return redirect("signin")
+
+    try:
+        user = public_users.objects.get(
+            id=request.session["user_id"],
+            is_active=True
+        )
+    except public_users.DoesNotExist:
+        return redirect("signin")
+
+    return render(request, "user/shelter_finder.html", {
+        "user_name":     user.fullname,
+        "user_district": user.district,
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

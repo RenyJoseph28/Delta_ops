@@ -177,15 +177,15 @@ def get_shelter_recommendations(origin_lat: float, origin_lon: float,
         )
 
         print(f"  [OSRM] {s.name}: straight={straight_km}km → road={road_km}km"
-              f"{f' ({duration_min} min)' if duration_min else ' (est.)'}")
 
         # ── Composite score ──
-        # Normalise road distance: 0km=1.0, 80km=0.0  (wider range than before)
-        # NEW — distance is primary priority
-        dist_score  = max(0, 1 - road_km / 100)  # wider range for Kerala distances
-        avail_score = 1 - (occ_pct / 100)
-        bonus       = (0.05 if s.is_accessible else 0) + (0.05 if s.has_medical else 0)
-        composite   = (dist_score * 0.65) + (avail_score * 0.30) + bonus
+        # Distance:  0km → 1.0,  200km → 0.0  (wide range covers all Kerala)
+        # Occupancy: only breaks ties, never overrides distance
+        # Bonus:     medical + accessible → max 0.05 total
+        dist_score  = max(0.0, 1.0 - road_km / 200.0)
+        avail_score = 1.0 - (occ_pct / 100.0)
+        bonus       = (0.025 if s.is_accessible else 0) + (0.025 if s.has_medical else 0)
+        composite   = (dist_score * 0.80) + (avail_score * 0.15) + bonus
 
         scored.append({
             "shelter":        s,

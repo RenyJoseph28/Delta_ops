@@ -733,3 +733,134 @@ def _save_status_update(request, shelter, updated_by: str):
         notes=request.POST.get("notes", "").strip(),
         updated_by=updated_by,
     )
+
+
+# ═══════════════════════════════════════════════════════════════
+# ⑤  PUBLIC — SHELTER FINDER  (used by logged-in public users)
+# ═══════════════════════════════════════════════════════════════
+
+
+def public_shelter_recommendations(request):
+    """
+    GET /shelters/recommendations/?lat=<float>&lon=<float>
+    Called via AJAX from the user-facing shelter finder page.
+    Returns top-3 shelters with route geometry + turn-by-turn steps.
+    No admin/manager auth required — only a valid public user session.
+    """
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if not is_ajax:
+        return redirect("shelter_finder")
+
+    try:
+        lat = float(request.GET.get("lat", 0))
+        lon = float(request.GET.get("lon", 0))
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Invalid coordinates"}, status=400)
+
+    if lat == 0 and lon == 0:
+        return JsonResponse({"error": "Coordinates required"}, status=400)
+
+    print(f"\n[PUBLIC RECOMMEND] Origin: ({lat}, {lon})")
+
+    results = get_shelter_recommendations(lat, lon, district=None, top_n=3)
+
+    shelter_list = []
+    for r in results:
+        s = r["shelter"]
+        geometry, steps = _fetch_osrm_route(lat, lon, float(s.latitude), float(s.longitude))
+
+        shelter_list.append({
+            "name":           s.name,
+            "address":        s.address or "",
+            "district":       s.district,
+            "lat":            float(s.latitude),
+            "lon":            float(s.longitude),
+            "distance_km":    r["distance_km"],
+            "duration_min":   r.get("duration_min"),
+            "free_slots":     r["free_slots"],
+            "occupancy_pct":  r["occupancy_pct"],
+            "composite":      r["composite"],
+            "has_medical":    r["has_medical"],
+            "is_accessible":  r["accessible"],
+            "contact_phone":  s.contact_phone or "",
+            "route_geometry": geometry,
+            "route_steps":    steps,
+        })
+
+    print(f"[PUBLIC RECOMMEND] Returning {len(shelter_list)} shelters to user")
+    return JsonResponse({"shelters": shelter_list})
+
+
+def _fetch_osrm_route(origin_lat, origin_lon, dest_lat, dest_lon):
+    """
+    Fetch full OSRM route: geometry (for Leaflet polyline) + steps (turn-by-turn).
+    Returns (geometry_dict | None, steps_list).
+    """
+    import urllib.request
+    import urllib.error
+    import json as _json
+
+    try:
+        url = (
+            f"http://router.project-osrm.org/route/v1/driving/"
+            f"{float(origin_lon)},{float(origin_lat)};"
+            f"{float(dest_lon)},{float(dest_lat)}"
+            f"?overview=full&geometries=geojson&steps=true"
+        )
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "DeltaOps/1.0", "Accept": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+
+        if data.get("code") != "Ok":
+            return None, []
+
+        route    = data["routes"][0]
+        geometry = route.get("geometry")
+
+        steps = []
+        for leg in route.get("legs", []):
+            for step in leg.get("steps", []):
+                maneuver  = step.get("maneuver", {})
+                m_type    = maneuver.get("type", "")
+                m_mod     = maneuver.get("modifier", "")
+                road_name = step.get("name", "") or step.get("ref", "") or "road"
+
+                if m_type == "turn":
+                    key = f"turn-{m_mod}".replace(" ", "-") if m_mod else "straight"
+                elif m_type in ("depart", "arrive", "roundabout", "merge", "fork"):
+                    key = m_type
+                else:
+                    key = "straight"
+
+                if m_type == "depart":
+                    instruction = f"Head towards {road_name}"
+                elif m_type == "arrive":
+                    instruction = "Arrive at destination"
+                elif m_type == "turn" and m_mod:
+                    instruction = f"Turn {m_mod} onto {road_name}"
+                elif m_type == "roundabout":
+                    exit_n = maneuver.get("exit", "")
+                    instruction = f"Take exit {exit_n} at roundabout" if exit_n else "Enter roundabout"
+                else:
+                    instruction = f"Continue on {road_name}"
+
+                steps.append({
+                    "maneuver":    key,
+                    "instruction": instruction,
+                    "name":        road_name,
+                    "distance":    step.get("distance", 0),
+                })
+
+        return geometry, steps
+
+    except urllib.error.HTTPError as e:
+        print(f"  [OSRM ROUTE] HTTP {e.code} — no geometry/steps")
+    except urllib.error.URLError:
+        print(f"  [OSRM ROUTE] URL Error — no geometry/steps")
+    except Exception as e:
+        print(f"  [OSRM ROUTE] Error: {e}")
+
+    return None, []
