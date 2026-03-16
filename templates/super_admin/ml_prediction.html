@@ -18,193 +18,221 @@
   --border-low:  #bbf7d0;
   --border-med:  #fde68a;
   --border-high: #fecaca;
+  --shap-pos:    #ef4444;
+  --shap-neg:    #22c55e;
 }
 
-/* ── Layout ── */
 .ml-page { font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; gap: 1.25rem; }
 
-/* ── Top bar: select + model info ── */
 .top-bar {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
-  align-items: center;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.875rem;
-  padding: 1rem 1.25rem;
+  display: grid; grid-template-columns: 1fr auto; gap: 1rem;
+  align-items: center; background: hsl(var(--card));
+  border: 1px solid hsl(var(--border)); border-radius: 0.875rem; padding: 1rem 1.25rem;
 }
 .district-form { display: flex; gap: 0.75rem; align-items: center; }
 .district-form select {
-  padding: 0.5rem 0.875rem;
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.5rem;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.875rem;
-  background: white;
-  min-width: 200px;
+  padding: 0.5rem 0.875rem; border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem; font-family: 'DM Sans', sans-serif;
+  font-size: 0.875rem; background: white; min-width: 200px;
 }
 .district-form select:focus { outline: none; border-color: hsl(var(--primary)); }
 .model-badge {
-  display: flex; align-items: center; gap: 0.5rem;
-  background: #f1f5f9; border-radius: 0.5rem;
-  padding: 0.4rem 0.875rem; font-size: 0.78rem;
-  font-family: 'IBM Plex Mono', monospace;
-  color: #475569; border: 1px solid #e2e8f0;
-  white-space: nowrap;
+  display: flex; align-items: center; gap: 0.5rem; background: #f1f5f9;
+  border-radius: 0.5rem; padding: 0.4rem 0.875rem; font-size: 0.78rem;
+  font-family: 'IBM Plex Mono', monospace; color: #475569;
+  border: 1px solid #e2e8f0; white-space: nowrap;
 }
-.model-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.model-dot { width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
 
-/* ── Overview grid ── */
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 0.75rem;
-}
+.overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem; }
 .district-card {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.75rem;
-  padding: 0.875rem;
-  transition: transform 0.15s, box-shadow 0.15s;
-  cursor: default;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem; padding: 0.875rem;
+  transition: transform 0.15s, box-shadow 0.15s; cursor: default;
 }
 .district-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
-.district-card.risk-high  { border-top: 3px solid var(--risk-high); }
-.district-card.risk-medium{ border-top: 3px solid var(--risk-med); }
-.district-card.risk-low   { border-top: 3px solid var(--risk-low); }
-.dc-name  { font-weight: 700; font-size: 0.82rem; margin-bottom: 0.4rem; }
-.dc-stats { font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem; line-height: 1.6; }
+.district-card.risk-high   { border-top: 3px solid var(--risk-high); }
+.district-card.risk-medium { border-top: 3px solid var(--risk-med); }
+.district-card.risk-low    { border-top: 3px solid var(--risk-low); }
+.dc-name  { font-weight:700;font-size:0.82rem;margin-bottom:0.4rem; }
+.dc-stats { font-size:0.75rem;color:#64748b;margin-bottom:0.5rem;line-height:1.6; }
 .risk-pill {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  display:inline-block;padding:0.15rem 0.55rem;border-radius:9999px;
+  font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
 }
-.risk-pill.low    { background: var(--bg-low);  color: var(--risk-low);  border: 1px solid var(--border-low); }
-.risk-pill.medium { background: var(--bg-med);  color: var(--risk-med);  border: 1px solid var(--border-med); }
-.risk-pill.high   { background: var(--bg-high); color: var(--risk-high); border: 1px solid var(--border-high); }
+.risk-pill.low    { background:var(--bg-low); color:var(--risk-low); border:1px solid var(--border-low); }
+.risk-pill.medium { background:var(--bg-med); color:var(--risk-med); border:1px solid var(--border-med); }
+.risk-pill.high   { background:var(--bg-high);color:var(--risk-high);border:1px solid var(--border-high);}
 
-/* ── Detailed section ── */
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-}
-@media(max-width:900px){ .detail-grid{ grid-template-columns: 1fr; } }
+.detail-grid { display:grid;grid-template-columns:1fr 1fr;gap:1.25rem; }
+@media(max-width:900px){ .detail-grid{ grid-template-columns:1fr; } }
 
 .detail-card {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.875rem;
-  padding: 1.25rem;
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:0.875rem;padding:1.25rem;
 }
 .detail-card h4 {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid hsl(var(--border));
+  font-size:0.875rem;font-weight:700;color:#374151;
+  margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid hsl(var(--border));
 }
 
-/* Risk banner */
 .risk-banner {
-  border-radius: 0.875rem;
-  padding: 1rem 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  border: 1px solid;
+  border-radius:0.875rem;padding:1rem 1.25rem;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1rem;border:1px solid;
 }
-.risk-banner.low    { background: var(--bg-low);  border-color: var(--border-low); }
-.risk-banner.medium { background: var(--bg-med);  border-color: var(--border-med); }
-.risk-banner.high   { background: var(--bg-high); border-color: var(--border-high); }
-.risk-label { font-size: 1.5rem; font-weight: 800; }
-.risk-banner.low    .risk-label { color: var(--risk-low); }
-.risk-banner.medium .risk-label { color: var(--risk-med); }
-.risk-banner.high   .risk-label { color: var(--risk-high); }
+.risk-banner.low    { background:var(--bg-low); border-color:var(--border-low); }
+.risk-banner.medium { background:var(--bg-med); border-color:var(--border-med); }
+.risk-banner.high   { background:var(--bg-high);border-color:var(--border-high);}
+.risk-label { font-size:1.5rem;font-weight:800; }
+.risk-banner.low    .risk-label { color:var(--risk-low); }
+.risk-banner.medium .risk-label { color:var(--risk-med); }
+.risk-banner.high   .risk-label { color:var(--risk-high);}
 .risk-circle {
-  width: 80px; height: 80px; border-radius: 50%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 0.95rem; border: 3px solid;
-  font-family: 'IBM Plex Mono', monospace;
+  width:80px;height:80px;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;font-size:0.95rem;border:3px solid;
+  font-family:'IBM Plex Mono',monospace;
 }
-.risk-banner.low    .risk-circle { border-color: var(--risk-low);  color: var(--risk-low); }
-.risk-banner.medium .risk-circle { border-color: var(--risk-med);  color: var(--risk-med); }
-.risk-banner.high   .risk-circle { border-color: var(--risk-high); color: var(--risk-high); }
+.risk-banner.low    .risk-circle { border-color:var(--risk-low); color:var(--risk-low); }
+.risk-banner.medium .risk-circle { border-color:var(--risk-med); color:var(--risk-med); }
+.risk-banner.high   .risk-circle { border-color:var(--risk-high);color:var(--risk-high);}
 
-/* Weather rows */
-.wx-row { display: flex; justify-content: space-between; align-items: center;
-  padding: 0.45rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
-.wx-row:last-child { border: none; }
-.wx-label { color: #64748b; }
-.wx-val   { font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; }
+.wx-row { display:flex;justify-content:space-between;align-items:center;
+  padding:0.45rem 0;border-bottom:1px solid #f1f5f9;font-size:0.85rem; }
+.wx-row:last-child { border:none; }
+.wx-label { color:#64748b; }
+.wx-val   { font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:0.82rem; }
 
-/* Feature table */
-.feat-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-.feat-table th { text-align: left; padding: 0.4rem 0.6rem; background: #f8fafc;
-  color: #475569; font-weight: 600; font-size: 0.72rem; text-transform: uppercase;
-  letter-spacing: 0.05em; border-bottom: 2px solid #e2e8f0; }
-.feat-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #f1f5f9;
-  font-family: 'IBM Plex Mono', monospace; color: #1e293b; }
-.feat-table tr:last-child td { border: none; }
-.feat-table tr:hover td { background: #f8fafc; }
-.feat-highlight { font-weight: 700; }
-.feat-highlight.flag-1 { color: var(--risk-high); }
-.feat-highlight.flag-0 { color: #94a3b8; }
+.feat-table { width:100%;border-collapse:collapse;font-size:0.8rem; }
+.feat-table th { text-align:left;padding:0.4rem 0.6rem;background:#f8fafc;
+  color:#475569;font-weight:600;font-size:0.72rem;text-transform:uppercase;
+  letter-spacing:0.05em;border-bottom:2px solid #e2e8f0; }
+.feat-table td { padding:0.4rem 0.6rem;border-bottom:1px solid #f1f5f9;
+  font-family:'IBM Plex Mono',monospace;color:#1e293b; }
+.feat-table tr:last-child td { border:none; }
+.feat-table tr:hover td { background:#f8fafc; }
+.feat-highlight { font-weight:700; }
+.feat-highlight.flag-1 { color:var(--risk-high); }
+.feat-highlight.flag-0 { color:#94a3b8; }
 
-/* Bar chart for confidence */
-.conf-bar-wrap { display: flex; flex-direction: column; gap: 0.75rem; }
-.conf-item { display: flex; flex-direction: column; gap: 0.3rem; }
-.conf-header { display: flex; justify-content: space-between; font-size: 0.82rem; }
-.conf-label { font-weight: 600; }
-.conf-pct   { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
-.conf-track {
-  height: 10px; background: #f1f5f9; border-radius: 9999px; overflow: hidden;
-}
-.conf-fill  { height: 100%; border-radius: 9999px; transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
-.conf-fill.low    { background: linear-gradient(90deg, #22c55e, #4ade80); }
-.conf-fill.medium { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
-.conf-fill.high   { background: linear-gradient(90deg, #ef4444, #f87171); }
+.conf-bar-wrap { display:flex;flex-direction:column;gap:0.75rem; }
+.conf-item { display:flex;flex-direction:column;gap:0.3rem; }
+.conf-header { display:flex;justify-content:space-between;font-size:0.82rem; }
+.conf-label { font-weight:600; }
+.conf-pct   { font-family:'IBM Plex Mono',monospace;font-weight:600; }
+.conf-track { height:10px;background:#f1f5f9;border-radius:9999px;overflow:hidden; }
+.conf-fill  { height:100%;border-radius:9999px;transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
+.conf-fill.low    { background:linear-gradient(90deg,#22c55e,#4ade80); }
+.conf-fill.medium { background:linear-gradient(90deg,#f59e0b,#fcd34d); }
+.conf-fill.high   { background:linear-gradient(90deg,#ef4444,#f87171); }
 
-/* Alert button */
 .alert-btn {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white; border: none; border-radius: 0.5rem;
-  font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 600;
-  cursor: pointer; transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(220,38,38,0.3);
-  width: 100%; justify-content: center; margin-top: 0.5rem;
+  display:inline-flex;align-items:center;gap:0.5rem;padding:0.625rem 1.25rem;
+  background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;
+  border-radius:0.5rem;font-family:'DM Sans',sans-serif;font-size:0.875rem;
+  font-weight:600;cursor:pointer;transition:all 0.2s;
+  box-shadow:0 4px 12px rgba(220,38,38,0.3);width:100%;
+  justify-content:center;margin-top:0.5rem;
 }
-.alert-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(220,38,38,0.4); }
-.alert-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.alert-btn:hover { transform:translateY(-1px);box-shadow:0 6px 16px rgba(220,38,38,0.4); }
+.alert-btn:disabled { opacity:0.6;cursor:not-allowed;transform:none; }
+.no-alert-msg { color:#16a34a;font-size:0.875rem;display:flex;align-items:center;gap:0.5rem;
+  background:#f0fdf4;padding:0.75rem;border-radius:0.5rem;border:1px solid #bbf7d0; }
 
-.no-alert-msg { color: #16a34a; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem;
-  background: #f0fdf4; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #bbf7d0; }
+.section-hdr { display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem; }
+.section-title { font-size:0.82rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em; }
+.section-sub   { font-size:0.72rem;color:#94a3b8; }
 
-/* Section header */
-.section-hdr {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 0.875rem;
+/* ── XAI Panel ── */
+.xai-panel {
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:0.875rem;padding:1.25rem;border-left:4px solid;
 }
-.section-title { font-size: 0.82rem; font-weight: 700; color: #374151;
-  text-transform: uppercase; letter-spacing: 0.06em; }
-.section-sub   { font-size: 0.72rem; color: #94a3b8; }
+.xai-panel.risk-high   { border-left-color:var(--risk-high); }
+.xai-panel.risk-medium { border-left-color:var(--risk-med);  }
+.xai-panel.risk-low    { border-left-color:var(--risk-low);  }
+
+.xai-header {
+  display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;
+}
+.xai-title-block h4 { font-size:0.9rem;font-weight:700;color:#374151;margin:0 0 0.2rem; }
+.xai-title-block p  { font-size:0.75rem;color:#64748b;margin:0;max-width:520px;line-height:1.5; }
+
+.xai-legend { display:flex;gap:1rem;align-items:center;flex-shrink:0; }
+.legend-item { display:flex;align-items:center;gap:0.35rem;font-size:0.72rem;color:#64748b; }
+.legend-dot  { width:10px;height:10px;border-radius:2px; }
+.legend-dot.pos { background:var(--shap-pos); }
+.legend-dot.neg { background:var(--shap-neg); }
+
+.xai-baseline {
+  display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.75rem;
+  background:#f8fafc;border-radius:0.5rem;margin-bottom:0.875rem;
+  font-size:0.78rem;color:#64748b;border:1px solid #e2e8f0;
+}
+.xai-baseline strong { font-family:'IBM Plex Mono',monospace;color:#374151; }
+
+.shap-row {
+  display:grid;grid-template-columns:160px 90px 1fr 70px;
+  align-items:center;gap:0.75rem;
+  padding:0.5rem 0.25rem;border-bottom:1px solid #f1f5f9;transition:background 0.15s;
+}
+.shap-row:last-child { border-bottom:none; }
+.shap-row:hover { background:#fafafa;border-radius:0.4rem; }
+
+@media(max-width:700px){
+  .shap-row { grid-template-columns:1fr 60px;grid-template-rows:auto auto; }
+  .shap-feature-name { grid-column:1;grid-row:1; }
+  .shap-feature-val  { grid-column:2;grid-row:1;text-align:right; }
+  .shap-bar-wrap     { grid-column:1/-1;grid-row:2; }
+  .shap-number       { display:none; }
+}
+
+.shap-feature-name {
+  font-size:0.82rem;font-weight:600;color:#374151;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.shap-feature-val {
+  font-family:'IBM Plex Mono',monospace;font-size:0.75rem;
+  color:#64748b;text-align:right;white-space:nowrap;
+}
+.shap-bar-wrap {
+  position:relative;height:14px;background:#f1f5f9;
+  border-radius:9999px;overflow:hidden;
+}
+.shap-bar-fill {
+  position:absolute;top:0;bottom:0;border-radius:9999px;
+  transition:width 1s cubic-bezier(0.34,1.56,0.64,1);
+}
+/* pos = danger/red  |  neg = safe/green */
+.shap-bar-fill.pos { background:linear-gradient(90deg,var(--shap-pos),#f87171); }
+.shap-bar-fill.neg { background:linear-gradient(90deg,var(--shap-neg),#4ade80); }
+
+.shap-number { font-family:'IBM Plex Mono',monospace;font-size:0.75rem;font-weight:600;text-align:right; }
+.shap-number.pos { color:var(--shap-pos); }
+.shap-number.neg { color:var(--shap-neg); }
+
+.xai-unavailable { text-align:center;padding:1.5rem;color:#94a3b8;font-size:0.85rem; }
+
+/* Plain English sentence shown under each SHAP factor row */
+.shap-plain-english {
+  font-size: 0.78rem;
+  color: #64748b;
+  padding: 0.25rem 0.25rem 0.6rem 0.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  line-height: 1.5;
+  font-style: italic;
+}
+.shap-plain-english:last-of-type { border-bottom: none; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="ml-page">
 
-  <!-- ── Top bar ── -->
+  <!-- Top bar -->
   <div class="top-bar">
     <form method="get" class="district-form">
       <span style="font-size:0.85rem;font-weight:600;color:#374151;">District</span>
@@ -217,11 +245,11 @@
     </form>
     <div class="model-badge">
       <div class="model-dot"></div>
-      Random Forest · 15 features · Live weather
+      Random Forest · SHAP XAI · Live weather
     </div>
   </div>
 
-  <!-- ── Kerala Overview ── -->
+  <!-- Kerala overview -->
   <div class="detail-card" style="padding:1.25rem;">
     <div class="section-hdr">
       <span class="section-title">🌍 Kerala District Overview</span>
@@ -231,9 +259,7 @@
       {% for d in district_overview %}
       <div class="district-card risk-{{ d.risk|lower }}">
         <div class="dc-name">{{ d.name }}</div>
-        <div class="dc-stats">
-          🌡 {{ d.temp }}°C &nbsp;|&nbsp; 🌧 {{ d.rain }} mm
-        </div>
+        <div class="dc-stats">🌡 {{ d.temp }}°C &nbsp;|&nbsp; 🌧 {{ d.rain }} mm</div>
         <span class="risk-pill {{ d.risk|lower }}">{{ d.risk }}</span>
       </div>
       {% endfor %}
@@ -242,7 +268,7 @@
 
   {% if weather and ml %}
 
-  <!-- ── Risk Banner ── -->
+  <!-- Risk banner -->
   <div class="risk-banner {{ ml.risk|lower }}">
     <div>
       <div style="font-size:0.78rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.25rem;">
@@ -253,159 +279,110 @@
         {{ ml.risk }} Flood Risk
       </div>
       <div style="font-size:0.78rem;color:#64748b;margin-top:0.3rem;">
-        Random Forest · 15 engineered features · Live OpenWeather data
+        Random Forest · 15 engineered features · SHAP Explainable AI
       </div>
     </div>
     <div class="risk-circle {{ ml.risk|lower }}">
-      {% if ml.risk == "High" %}
-        {{ ml.confidence.High }}%
-      {% elif ml.risk == "Medium" %}
-        {{ ml.confidence.Medium }}%
-      {% else %}
-        {{ ml.confidence.Low }}%
-      {% endif %}
+      {% if ml.risk == "High" %}{{ ml.confidence.High }}%
+      {% elif ml.risk == "Medium" %}{{ ml.confidence.Medium }}%
+      {% else %}{{ ml.confidence.Low }}%{% endif %}
       <span style="font-size:0.55rem;font-weight:400;margin-top:1px;">conf</span>
     </div>
   </div>
 
+  <!-- 2-column detail grid -->
   <div class="detail-grid">
 
-    <!-- COL 1 TOP: Live Weather -->
+    <!-- Live Weather -->
     <div class="detail-card">
       <h4>🌤 Live Weather — {{ district }}</h4>
       <div class="wx-row"><span class="wx-label">Temperature</span><span class="wx-val">{{ weather.temperature }} °C</span></div>
       <div class="wx-row"><span class="wx-label">Humidity</span><span class="wx-val">{{ weather.humidity }}%</span></div>
-      <div class="wx-row"><span class="wx-label">Rainfall (1h)</span>
+      <div class="wx-row">
+        <span class="wx-label">Rainfall (1h)</span>
         <span class="wx-val" style="{% if weather.rain_1h > 50 %}color:var(--risk-high);{% elif weather.rain_1h > 10 %}color:var(--risk-med);{% endif %}">
           {{ weather.rain_1h }} mm
         </span>
       </div>
       <div class="wx-row"><span class="wx-label">Wind Speed</span><span class="wx-val">{{ weather.wind_speed }} m/s</span></div>
       <div class="wx-row"><span class="wx-label">Pressure</span><span class="wx-val">{{ weather.pressure }} hPa</span></div>
-      <div class="wx-row"><span class="wx-label">Condition</span><span class="wx-val" style="font-family:'DM Sans';font-size:0.85rem;">{{ weather.description }}</span></div>
+      <div class="wx-row"><span class="wx-label">Condition</span>
+        <span class="wx-val" style="font-family:'DM Sans';font-size:0.85rem;">{{ weather.description }}</span>
+      </div>
     </div>
 
-    <!-- COL 2 TOP: Confidence bars -->
+    <!-- Confidence bars + doughnut -->
     <div class="detail-card">
       <h4>📊 Prediction Confidence Breakdown</h4>
       <div class="conf-bar-wrap">
         <div class="conf-item">
           <div class="conf-header">
             <span class="conf-label" style="color:var(--risk-low);">🟢 Low Risk</span>
-            <span class="conf-pct" style="color:var(--risk-low);">{{ ml.confidence.Low }}%</span>
+            <span class="conf-pct"   style="color:var(--risk-low);">{{ ml.confidence.Low }}%</span>
           </div>
           <div class="conf-track"><div class="conf-fill low" style="width:{{ ml.confidence.Low }}%"></div></div>
         </div>
         <div class="conf-item">
           <div class="conf-header">
             <span class="conf-label" style="color:var(--risk-med);">🟡 Medium Risk</span>
-            <span class="conf-pct" style="color:var(--risk-med);">{{ ml.confidence.Medium }}%</span>
+            <span class="conf-pct"   style="color:var(--risk-med);">{{ ml.confidence.Medium }}%</span>
           </div>
           <div class="conf-track"><div class="conf-fill medium" style="width:{{ ml.confidence.Medium }}%"></div></div>
         </div>
         <div class="conf-item">
           <div class="conf-header">
             <span class="conf-label" style="color:var(--risk-high);">🔴 High Risk</span>
-            <span class="conf-pct" style="color:var(--risk-high);">{{ ml.confidence.High }}%</span>
+            <span class="conf-pct"   style="color:var(--risk-high);">{{ ml.confidence.High }}%</span>
           </div>
           <div class="conf-track"><div class="conf-fill high" style="width:{{ ml.confidence.High }}%"></div></div>
         </div>
       </div>
-
-      <!-- Pie chart (smaller, supplementary) -->
       <div style="display:flex;justify-content:center;margin-top:1rem;">
-        <div style="width:160px;height:160px;">
-          <canvas id="riskChart"></canvas>
-        </div>
+        <div style="width:160px;height:160px;"><canvas id="riskChart"></canvas></div>
       </div>
     </div>
 
-    <!-- COL 1 BOTTOM: Feature inputs used -->
+    <!-- Feature inputs table -->
     <div class="detail-card">
       <h4>🔬 Features Fed to the Model</h4>
       <table class="feat-table">
-        <thead>
-          <tr><th>Feature</th><th>Value</th><th>Impact</th></tr>
-        </thead>
+        <thead><tr><th>Feature</th><th>Value</th><th>Impact</th></tr></thead>
         <tbody>
-          <tr>
-            <td>Rainfall (1h)</td>
-            <td>{{ ml.features.Daily_Rainfall_mm }} mm</td>
+          <tr><td>Rainfall (1h)</td><td>{{ ml.features.Daily_Rainfall_mm }} mm</td>
             <td><span class="feat-highlight {% if ml.features.Daily_Rainfall_mm > 50 %}flag-1{% else %}flag-0{% endif %}">
-              {% if ml.features.Daily_Rainfall_mm > 50 %}⚠ High{% else %}Normal{% endif %}
-            </span></td>
-          </tr>
-          <tr>
-            <td>Rainfall (7-day est.)</td>
-            <td>{{ ml.features.Rainfall_7day_mm }} mm</td>
+              {% if ml.features.Daily_Rainfall_mm > 50 %}⚠ High{% else %}Normal{% endif %}</span></td></tr>
+          <tr><td>Rainfall (7-day est.)</td><td>{{ ml.features.Rainfall_7day_mm }} mm</td>
             <td><span class="feat-highlight {% if ml.features.Rainfall_7day_mm > 500 %}flag-1{% else %}flag-0{% endif %}">
-              {% if ml.features.Rainfall_7day_mm > 500 %}⚠ High{% else %}Normal{% endif %}
-            </span></td>
-          </tr>
-          <tr>
-            <td>Rainfall (30-day est.)</td>
-            <td>{{ ml.features.Rainfall_30day_mm }} mm</td>
-            <td>—</td>
-          </tr>
-          <tr>
-            <td>Soil Moisture</td>
-            <td>{{ ml.features.Soil_Moisture_pct }}%</td>
+              {% if ml.features.Rainfall_7day_mm > 500 %}⚠ High{% else %}Normal{% endif %}</span></td></tr>
+          <tr><td>Rainfall (30-day est.)</td><td>{{ ml.features.Rainfall_30day_mm }} mm</td><td>—</td></tr>
+          <tr><td>Soil Moisture</td><td>{{ ml.features.Soil_Moisture_pct }}%</td>
             <td><span class="feat-highlight {% if ml.features.Soil_Moisture_pct > 70 %}flag-1{% else %}flag-0{% endif %}">
-              {% if ml.features.Soil_Moisture_pct > 70 %}⚠ Saturated{% else %}Normal{% endif %}
-            </span></td>
-          </tr>
-          <tr>
-            <td>Humidity</td>
-            <td>{{ ml.features.Humidity_pct }}%</td>
+              {% if ml.features.Soil_Moisture_pct > 70 %}⚠ Saturated{% else %}Normal{% endif %}</span></td></tr>
+          <tr><td>Humidity</td><td>{{ ml.features.Humidity_pct }}%</td>
             <td><span class="feat-highlight {% if ml.features.Humidity_pct > 85 %}flag-1{% else %}flag-0{% endif %}">
-              {% if ml.features.Humidity_pct > 85 %}⚠ High{% else %}Normal{% endif %}
-            </span></td>
-          </tr>
-          <tr>
-            <td>Temperature</td>
-            <td>{{ ml.features.Temperature_C }} °C</td>
-            <td>—</td>
-          </tr>
-          <tr>
-            <td>Wind Speed</td>
-            <td>{{ ml.features.Wind_Speed_kmh }} km/h</td>
-            <td>—</td>
-          </tr>
-          <tr>
-            <td>Is Monsoon Season</td>
-            <td>{{ ml.features.Is_Monsoon }}</td>
+              {% if ml.features.Humidity_pct > 85 %}⚠ High{% else %}Normal{% endif %}</span></td></tr>
+          <tr><td>Temperature</td><td>{{ ml.features.Temperature_C }} °C</td><td>—</td></tr>
+          <tr><td>Wind Speed</td><td>{{ ml.features.Wind_Speed_kmh }} km/h</td><td>—</td></tr>
+          <tr><td>Is Monsoon Season</td><td>{{ ml.features.Is_Monsoon }}</td>
             <td><span class="feat-highlight flag-{{ ml.features.Is_Monsoon }}">
-              {% if ml.features.Is_Monsoon %}Yes{% else %}No{% endif %}
-            </span></td>
-          </tr>
-          <tr>
-            <td>Is Heavy Rain</td>
-            <td>{{ ml.features.Is_Heavy_Rain }}</td>
+              {% if ml.features.Is_Monsoon %}Yes{% else %}No{% endif %}</span></td></tr>
+          <tr><td>Is Heavy Rain</td><td>{{ ml.features.Is_Heavy_Rain }}</td>
             <td><span class="feat-highlight flag-{{ ml.features.Is_Heavy_Rain }}">
-              {% if ml.features.Is_Heavy_Rain %}⚠ Yes{% else %}No{% endif %}
-            </span></td>
-          </tr>
-          <tr>
-            <td>High Soil Moisture</td>
-            <td>{{ ml.features.High_Soil_Moisture }}</td>
+              {% if ml.features.Is_Heavy_Rain %}⚠ Yes{% else %}No{% endif %}</span></td></tr>
+          <tr><td>High Soil Moisture</td><td>{{ ml.features.High_Soil_Moisture }}</td>
             <td><span class="feat-highlight flag-{{ ml.features.High_Soil_Moisture }}">
-              {% if ml.features.High_Soil_Moisture %}⚠ Yes{% else %}No{% endif %}
-            </span></td>
-          </tr>
+              {% if ml.features.High_Soil_Moisture %}⚠ Yes{% else %}No{% endif %}</span></td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- COL 2 BOTTOM: Alert control -->
+    <!-- Alert control -->
     <div class="detail-card">
       <h4>🔔 Alert Control</h4>
-
       <div style="margin-bottom:1rem;">
         <div style="font-size:0.78rem;color:#64748b;margin-bottom:0.5rem;">Current Status</div>
         <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:0.5rem;border:1px solid #e2e8f0;">
-          <span style="font-size:1.5rem;">
-            {% if ml.risk == "High" %}🚨{% elif ml.risk == "Medium" %}⚠️{% else %}✅{% endif %}
-          </span>
+          <span style="font-size:1.5rem;">{% if ml.risk == "High" %}🚨{% elif ml.risk == "Medium" %}⚠️{% else %}✅{% endif %}</span>
           <div>
             <div style="font-weight:700;font-size:0.9rem;">{{ district }} — {{ ml.risk }} Risk</div>
             <div style="font-size:0.75rem;color:#64748b;">
@@ -414,22 +391,17 @@
           </div>
         </div>
       </div>
-
       {% if ml.risk != "Low" %}
       <div style="font-size:0.78rem;color:#64748b;margin-bottom:0.5rem;">Send alert email to all registered users in {{ district }}</div>
-      <button id="send_alert_btn" class="alert-btn">
-        🚨 Send Manual Alert to {{ district }} Users
-      </button>
+      <button id="send_alert_btn" class="alert-btn">🚨 Send Manual Alert to {{ district }} Users</button>
       <div id="alert_status" style="font-size:0.8rem;margin-top:0.5rem;display:none;"></div>
       {% else %}
-      <div class="no-alert-msg">
-        ✅ No alert required — {{ district }} is currently Low Risk
-      </div>
+      <div class="no-alert-msg">✅ No alert required — {{ district }} is currently Low Risk</div>
       {% endif %}
-
       <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid #f1f5f9;">
         <div style="font-size:0.72rem;color:#94a3b8;font-family:'IBM Plex Mono',monospace;line-height:1.8;">
           Model: Random Forest Classifier<br>
+          XAI Method: SHAP TreeExplainer<br>
           Features: 15 (weather + engineered)<br>
           District encoded: {{ ml.features.District_Encoded }}<br>
           Prediction month: {{ ml.features.Month }}
@@ -437,7 +409,114 @@
       </div>
     </div>
 
-  </div>
+  </div><!-- end detail-grid -->
+
+
+  <!-- XAI EXPLANATION PANEL -->
+  <div class="xai-panel risk-{{ ml.risk|lower }}">
+
+    <!-- Header + legend -->
+    <div class="xai-header">
+      <div class="xai-title-block">
+        <h4>🧠 XAI Explanation — Why {{ ml.risk }} Risk for {{ district }}?</h4>
+        <p>
+          {% if ml.risk == "Low" %}
+            These features confirm why flood risk remains
+            <strong style="color:var(--risk-low);">LOW</strong> for {{ district }} —
+            all factors point away from flooding conditions.
+            <strong style="color:var(--shap-neg);">Green bars</strong> are safety signals (confirm LOW risk).
+            <strong style="color:var(--shap-pos);">Red bars</strong> slightly work against the LOW prediction.
+          {% else %}
+            These features drove the model toward
+            <strong style="{% if ml.risk == 'High' %}color:var(--risk-high){% else %}color:var(--risk-med){% endif %}">
+              {{ ml.risk|upper }} risk
+            </strong> for {{ district }}.
+            <strong style="color:var(--shap-pos);">Red bars</strong> are danger signals pushing toward {{ ml.risk }} risk.
+            <strong style="color:var(--shap-neg);">Green bars</strong> pushed against it.
+          {% endif %}
+          Bar length = relative importance of that feature.
+        </p>
+      </div>
+      <!-- Legend labels change based on risk level -->
+      <div class="xai-legend">
+        {% if ml.risk == "Low" %}
+          <div class="legend-item"><div class="legend-dot neg"></div>Confirms LOW (safe)</div>
+          <div class="legend-item"><div class="legend-dot pos"></div>Reduces LOW confidence</div>
+        {% else %}
+          <div class="legend-item"><div class="legend-dot pos"></div>Increases {{ ml.risk }} risk</div>
+          <div class="legend-item"><div class="legend-dot neg"></div>Decreases {{ ml.risk }} risk</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Baseline row -->
+    <div class="xai-baseline">
+      <span>📊</span>
+      <span>
+        Model baseline (average prediction before any features):
+        <strong>{{ ml.base_value }}</strong>
+        &nbsp;→&nbsp; features combined to predict
+        <strong style="{% if ml.risk == 'High' %}color:var(--risk-high){% elif ml.risk == 'Medium' %}color:var(--risk-med){% else %}color:var(--risk-low){% endif %}">
+          {{ ml.risk }} Risk
+        </strong>
+        with
+        <strong>
+          {% if ml.risk == "High" %}{{ ml.confidence.High }}{% elif ml.risk == "Medium" %}{{ ml.confidence.Medium }}{% else %}{{ ml.confidence.Low }}{% endif %}%
+        </strong> confidence
+      </span>
+    </div>
+
+    <!-- SHAP factor rows -->
+    {% if ml.explanation %}
+
+      <!-- Column headers -->
+      <div style="display:grid;grid-template-columns:160px 90px 1fr 70px;gap:0.75rem;
+                  padding:0.3rem 0.25rem;margin-bottom:0.25rem;">
+        <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Feature</div>
+        <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;text-align:right;">Value</div>
+        <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Contribution</div>
+        <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;text-align:right;">SHAP</div>
+      </div>
+
+      {% for factor in ml.explanation %}
+      <div class="shap-row">
+        <div class="shap-feature-name">{{ factor.feature }}</div>
+        <div class="shap-feature-val">{{ factor.value }}{% if factor.unit %} {{ factor.unit }}{% endif %}</div>
+        <div class="shap-bar-wrap">
+          <div class="shap-bar-fill"
+               data-direction="{{ factor.direction }}"
+               data-riskclass="{{ ml.risk|lower }}"
+               style="width:{{ factor.bar_width }}%;"></div>
+        </div>
+        <div class="shap-number"
+             data-direction="{{ factor.direction }}"
+             data-riskclass="{{ ml.risk|lower }}">
+          {% if factor.direction == 'increases_risk' %}+{% endif %}{{ factor.shap_value }}
+        </div>
+      </div>
+      <!-- Plain English explanation shown below each factor row -->
+      <div class="shap-plain-english">{{ factor.plain_english }}</div>
+      {% endfor %}
+
+      <div style="margin-top:0.875rem;padding-top:0.75rem;border-top:1px solid #f1f5f9;
+                  font-size:0.72rem;color:#94a3b8;font-family:'IBM Plex Mono',monospace;">
+        SHAP method: TreeExplainer (exact Shapley values) &nbsp;·&nbsp;
+        Top {{ ml.explanation|length }} of 15 features shown &nbsp;·&nbsp;
+        Values represent contribution to the <em>{{ ml.risk }}</em> class probability
+      </div>
+
+    {% else %}
+      <div class="xai-unavailable">
+        <div style="font-size:1.5rem;margin-bottom:0.5rem;">🔍</div>
+        <div>SHAP explanation unavailable for this prediction.</div>
+        <div style="font-size:0.75rem;margin-top:0.25rem;">
+          Ensure shap is installed: <code>pip install shap</code>
+        </div>
+      </div>
+    {% endif %}
+
+  </div><!-- end xai-panel -->
+
   {% endif %}
 
 </div>
@@ -447,65 +526,84 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% if ml %}
 <script>
-// Pie chart (supplementary)
+// ── Doughnut chart ────────────────────────────────────────────────────
 new Chart(document.getElementById("riskChart"), {
   type: "doughnut",
   data: {
-    labels: ["Low", "Medium", "High"],
-    datasets: [{
-      data: [
-        {{ ml.confidence.Low }},
-        {{ ml.confidence.Medium }},
-        {{ ml.confidence.High }}
-      ],
-      backgroundColor: ["#22c55e","#f59e0b","#ef4444"],
-      borderWidth: 2,
-      borderColor: "#ffffff"
+    labels: ["Low","Medium","High"],
+    datasets:[{
+      data:[{{ ml.confidence.Low }},{{ ml.confidence.Medium }},{{ ml.confidence.High }}],
+      backgroundColor:["#22c55e","#f59e0b","#ef4444"],
+      borderWidth:2, borderColor:"#ffffff"
     }]
   },
-  options: {
-    responsive: true,
-    maintainAspectRatio: true,
-    cutout: "60%",
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (ctx) => ` ${ctx.label}: ${ctx.parsed}%`
-        }
-      }
-    }
+  options:{
+    responsive:true, maintainAspectRatio:true, cutout:"60%",
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>` ${ctx.label}: ${ctx.parsed}%`}} }
   }
 });
 
-// Alert button
-const btn = document.getElementById("send_alert_btn");
+// ── SHAP bar colour logic ─────────────────────────────────────────────
+// Colour meaning depends on the predicted risk class:
+//
+//  HIGH or MEDIUM prediction:
+//    increases_risk → RED  (this feature is a danger signal)
+//    decreases_risk → GREEN (this feature is working against risk)
+//
+//  LOW prediction:
+//    increases_risk → GREEN (this feature confirms the district is safe)
+//    decreases_risk → RED   (this feature slightly undermines the LOW prediction)
+//
+// This makes colour intuitive for the user regardless of risk level.
+
+function getShapColour(direction, riskClass) {
+  const isLow = riskClass === 'low';
+  if (direction === 'increases_risk') {
+    return isLow ? 'neg' : 'pos';   // LOW→green(safe), HIGH→red(danger)
+  } else {
+    return isLow ? 'pos' : 'neg';   // LOW→red(reduces safety), HIGH→green(reduces danger)
+  }
+}
+
+// Apply to bars
+document.querySelectorAll('.shap-bar-fill').forEach(bar => {
+  const dir       = bar.getAttribute('data-direction');
+  const riskClass = bar.getAttribute('data-riskclass');
+  bar.classList.add(getShapColour(dir, riskClass));
+});
+
+// Apply to SHAP numbers
+document.querySelectorAll('.shap-number[data-direction]').forEach(el => {
+  const dir       = el.getAttribute('data-direction');
+  const riskClass = el.getAttribute('data-riskclass');
+  el.classList.add(getShapColour(dir, riskClass));
+});
+
+// ── Manual alert button ───────────────────────────────────────────────
+const btn      = document.getElementById("send_alert_btn");
 const statusEl = document.getElementById("alert_status");
 if (btn) {
   btn.onclick = async () => {
     if (!confirm("Send alert to all registered users in {{ district }}?")) return;
-    btn.disabled = true;
+    btn.disabled    = true;
     btn.textContent = "⏳ Sending...";
     try {
       const resp = await fetch("{% url 'send_manual_weather_alert' %}", {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": "{{ csrf_token }}",
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: "district={{ district }}"
+        method:"POST",
+        headers:{"X-CSRFToken":"{{ csrf_token }}","Content-Type":"application/x-www-form-urlencoded"},
+        body:"district={{ district }}"
       });
-      const data = await resp.json();
-      btn.textContent = "✅ Alert Sent";
+      await resp.json();
+      btn.textContent        = "✅ Alert Sent";
       statusEl.style.display = "block";
-      statusEl.style.color = "#16a34a";
-      statusEl.textContent = "Alert successfully sent to users in {{ district }}.";
+      statusEl.style.color   = "#16a34a";
+      statusEl.textContent   = "Alert successfully sent to users in {{ district }}.";
     } catch(e) {
-      btn.disabled = false;
-      btn.textContent = "🚨 Send Manual Alert";
+      btn.disabled           = false;
+      btn.textContent        = "🚨 Send Manual Alert";
       statusEl.style.display = "block";
-      statusEl.style.color = "#dc2626";
-      statusEl.textContent = "Failed to send alert. Please try again.";
+      statusEl.style.color   = "#dc2626";
+      statusEl.textContent   = "Failed to send alert. Please try again.";
     }
   };
 }

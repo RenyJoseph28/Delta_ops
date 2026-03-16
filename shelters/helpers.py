@@ -176,7 +176,7 @@ def get_shelter_recommendations(origin_lat: float, origin_lon: float,
             origin_lat, origin_lon, s.latitude, s.longitude
         )
 
-        print(f"  [OSRM] {s.name}: straight={straight_km}km → road={road_km}km"
+        print(f"  [OSRM] {s.name}: straight={straight_km}km → road={road_km}km")
 
         # ── Composite score ──
         # Distance:  0km → 1.0,  200km → 0.0  (wide range covers all Kerala)
