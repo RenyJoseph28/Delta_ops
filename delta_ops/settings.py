@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
+import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +22,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-ituu2d=35xxm1ffj9p=hsicv0*haxejuekf4)#4zmsr#!e3sc#"
+# SECRET_KEY = "django-insecure-ituu2d=35xxm1ffj9p=hsicv0*haxejuekf4)#4zmsr#!e3sc#"
+
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
 
-ALLOWED_HOSTS = []
+DEBUG = False
+
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -88,15 +94,19 @@ WSGI_APPLICATION = "delta_ops.wsgi.application"
 
 # Database configuration for PostgreSQL
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": "delta_ops_db",      # your database name
+#         "USER": "postgres",          # your postgres username
+#         "PASSWORD": "admin", # your postgres password
+#         "HOST": "localhost",         # or IP / domain
+#         "PORT": "5432",              # default PostgreSQL port
+#     }
+# }
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "delta_ops_db",      # your database name
-        "USER": "postgres",          # your postgres username
-        "PASSWORD": "admin", # your postgres password
-        "HOST": "localhost",         # or IP / domain
-        "PORT": "5432",              # default PostgreSQL port
-    }
+    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
 }
 
 
@@ -150,15 +160,27 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'deltaopsproject@gmail.com'  # Your Gmail
-EMAIL_HOST_PASSWORD = 'numk cmgx snkp exdz'  # Your Gmail App Password
+# EMAIL_HOST_USER = 'deltaopsproject@gmail.com'  # Your Gmail
+# EMAIL_HOST_PASSWORD = 'numk cmgx snkp exdz'  # Your Gmail App Password
+
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+
+OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY')
+
 DEFAULT_FROM_EMAIL = 'Delta Ops <deltaopsproject@gmail.com>'
 
 # OpenWeatherMap API Key
-OPENWEATHER_API_KEY = 'cb57a9b625c4b5c287faaaf107eaae10'
+# OPENWEATHER_API_KEY = 'cb57a9b625c4b5c287faaaf107eaae10'
 
 # Cache weather data for 10 minutes
 WEATHER_CACHE_TIMEOUT = 600  # seconds
 
 ALERT_TEST_MODE = True
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 

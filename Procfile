@@ -1,0 +1,1 @@
+web: gunicorn delta_ops.wsgi
