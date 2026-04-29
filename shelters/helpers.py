@@ -37,11 +37,113 @@ def haversine_km(lat1, lon1, lat2, lon2) -> float:
 # 1. SHELTER RECOMMENDATION
 # ─────────────────────────────────────────────
 
+# def get_shelter_recommendations(origin_lat: float, origin_lon: float,
+#                                  district: str = None, top_n: int = 3) -> list:
+#     """
+#     Returns top_n shelter recommendations sorted by composite score.
+#     Score considers: distance, occupancy load, accessibility, medical availability.
+#     """
+#     from .models import Shelter
+
+#     qs = Shelter.objects.filter(status="active")
+#     if district:
+#         qs = qs.filter(district=district)
+
+#     scored = []
+#     for s in qs:
+#         occ_pct = s.occupancy_pct
+
+#         # Skip completely full shelters
+#         if occ_pct >= 98:
+#             continue
+
+#         dist_km    = haversine_km(origin_lat, origin_lon, s.latitude, s.longitude)
+#         free_slots = s.max_capacity - s.current_occupancy
+
+#         # ── Score (lower is better for distance, higher is better overall) ──
+#         # Normalise distance: 0km=1.0, 50km=0.0
+#         dist_score  = max(0, 1 - dist_km / 50)
+#         # Availability score: free slots relative to capacity
+#         avail_score = 1 - (occ_pct / 100)
+#         # Bonus for accessible / medical
+#         bonus       = (0.1 if s.is_accessible else 0) + (0.1 if s.has_medical else 0)
+
+#         composite = (dist_score * 0.45) + (avail_score * 0.45) + bonus
+
+#         scored.append({
+#             "shelter":        s,
+#             "distance_km":    round(dist_km, 1),
+#             "free_slots":     free_slots,
+#             "occupancy_pct":  occ_pct,
+#             "composite":      round(composite, 3),
+#             "accessible":     s.is_accessible,
+#             "has_medical":    s.has_medical,
+#         })
+
+#     scored.sort(key=lambda x: x["composite"], reverse=True)
+#     return scored[:top_n]
+
+
+# ─────────────────────────────────────────────
+# OSRM ROAD DISTANCE (OpenStreetMap Routing)
+# ─────────────────────────────────────────────
+
+def osrm_road_distance(origin_lat, origin_lon, dest_lat, dest_lon):
+    """
+    Returns (distance_km, duration_min) via OSRM public API.
+    Falls back to Haversine if API fails.
+    """
+    import urllib.request
+    import urllib.error
+    import json as _json
+
+    try:
+        # NOTE: OSRM expects lon,lat order (not lat,lon)
+        # Only valid params: overview, alternatives, steps, geometries, annotations
+        url = (
+            f"http://router.project-osrm.org/route/v1/driving/"
+            f"{float(origin_lon)},{float(origin_lat)};"
+            f"{float(dest_lon)},{float(dest_lat)}"
+            f"?overview=false"
+        )
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "DeltaOps/1.0",
+                "Accept": "application/json",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))  # ← decode bytes
+
+        if data.get("code") == "Ok":
+            route   = data["routes"][0]
+            dist_km = round(route["distance"] / 1000, 1)
+            dur_min = round(route["duration"] / 60)
+            return dist_km, int(dur_min)
+        else:
+            print(f"  [OSRM] ⚠️  Response code: {data.get('code')} — {data.get('message','')}")
+
+    except urllib.error.HTTPError as e:
+        print(f"  [OSRM] ⚠️  HTTP {e.code} {e.reason} — falling back to Haversine")
+    except urllib.error.URLError as e:
+        print(f"  [OSRM] ⚠️  URL Error: {e.reason} — falling back to Haversine")
+    except Exception as e:
+        print(f"  [OSRM] ⚠️  Error ({e}) — falling back to Haversine")
+
+    # Fallback: straight-line × 1.8 (Kerala hill roads ratio)
+    straight = haversine_km(origin_lat, origin_lon, dest_lat, dest_lon)
+    return round(straight * 1.8, 1), None
+# ─────────────────────────────────────────────
+# 1. SHELTER RECOMMENDATION
+# ─────────────────────────────────────────────
+
 def get_shelter_recommendations(origin_lat: float, origin_lon: float,
                                  district: str = None, top_n: int = 3) -> list:
     """
     Returns top_n shelter recommendations sorted by composite score.
-    Score considers: distance, occupancy load, accessibility, medical availability.
+    Uses OSRM for real road distances. Falls back to Haversine if unavailable.
+    Score considers: road distance, occupancy load, accessibility, medical availability.
     """
     from .models import Shelter
 
@@ -49,30 +151,46 @@ def get_shelter_recommendations(origin_lat: float, origin_lon: float,
     if district:
         qs = qs.filter(district=district)
 
-    scored = []
+    # ── Step 1: Quick Haversine pre-filter (avoid OSRM calls for far shelters) ──
+    candidates = []
     for s in qs:
         occ_pct = s.occupancy_pct
-
-        # Skip completely full shelters
         if occ_pct >= 98:
             continue
+        straight_km = haversine_km(origin_lat, origin_lon, s.latitude, s.longitude)
+        candidates.append((straight_km, s))
 
-        dist_km    = haversine_km(origin_lat, origin_lon, s.latitude, s.longitude)
+    # Sort by straight-line distance, take top 10 for OSRM lookup
+    candidates.sort(key=lambda x: x[0])
+    candidates = candidates[:10]
+
+    print(f"  [RECOMMEND] {len(candidates)} candidates shortlisted for OSRM road distance lookup")
+
+    # ── Step 2: Get real road distances via OSRM ──
+    scored = []
+    for straight_km, s in candidates:
+        occ_pct    = s.occupancy_pct
         free_slots = s.max_capacity - s.current_occupancy
 
-        # ── Score (lower is better for distance, higher is better overall) ──
-        # Normalise distance: 0km=1.0, 50km=0.0
-        dist_score  = max(0, 1 - dist_km / 50)
-        # Availability score: free slots relative to capacity
-        avail_score = 1 - (occ_pct / 100)
-        # Bonus for accessible / medical
-        bonus       = (0.1 if s.is_accessible else 0) + (0.1 if s.has_medical else 0)
+        road_km, duration_min = osrm_road_distance(
+            origin_lat, origin_lon, s.latitude, s.longitude
+        )
 
-        composite = (dist_score * 0.45) + (avail_score * 0.45) + bonus
+        print(f"  [OSRM] {s.name}: straight={straight_km}km → road={road_km}km")
+
+        # ── Composite score ──
+        # Distance:  0km → 1.0,  200km → 0.0  (wide range covers all Kerala)
+        # Occupancy: only breaks ties, never overrides distance
+        # Bonus:     medical + accessible → max 0.05 total
+        dist_score  = max(0.0, 1.0 - road_km / 200.0)
+        avail_score = 1.0 - (occ_pct / 100.0)
+        bonus       = (0.025 if s.is_accessible else 0) + (0.025 if s.has_medical else 0)
+        composite   = (dist_score * 0.80) + (avail_score * 0.15) + bonus
 
         scored.append({
             "shelter":        s,
-            "distance_km":    round(dist_km, 1),
+            "distance_km":    road_km,
+            "duration_min":   duration_min,   # ← new field
             "free_slots":     free_slots,
             "occupancy_pct":  occ_pct,
             "composite":      round(composite, 3),
@@ -81,6 +199,9 @@ def get_shelter_recommendations(origin_lat: float, origin_lon: float,
         })
 
     scored.sort(key=lambda x: x["composite"], reverse=True)
+
+    print(f"  [DISTANCE] {s.name}: straight={straight_km}km → OSRM road={road_km}km")
+
     return scored[:top_n]
 
 

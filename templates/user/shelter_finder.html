@@ -1,0 +1,790 @@
+{% extends "user/index.html" %}
+{% block title %}Find Shelter{% endblock %}
+{% block nav_shelter %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+* { box-sizing: border-box; }
+
+/* ── Page wrapper ── */
+.finder-wrap {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f2744 100%);
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.finder-header { text-align: center; padding: 1.25rem 1rem 0.875rem; }
+.sos-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4);
+  color: #fca5a5; font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 0.28rem 0.75rem; border-radius: 2rem; margin-bottom: 0.6rem;
+}
+.finder-header h1 {
+  color: #f1f5f9; font-size: clamp(1.2rem, 3vw, 1.75rem);
+  font-weight: 700; margin: 0 0 0.25rem; letter-spacing: -0.02em;
+}
+.finder-header p { color: #64748b; font-size: 0.8rem; margin: 0; }
+
+/* ── Location bar ── */
+.location-bar {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0.75rem; padding: 0.75rem 1rem;
+  margin: 0.875rem 1rem 0.75rem;
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+}
+.location-info { flex: 1; min-width: 140px; }
+.loc-label { font-size: 0.65rem; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.15rem; }
+.loc-value { color: #e2e8f0; font-size: 0.82rem; font-weight: 500; }
+.loc-value span { color: #38bdf8; }
+.gps-btn {
+  background: rgba(59,130,246,0.12); color: #93c5fd;
+  border: 1px solid rgba(59,130,246,0.25); padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 0.35rem;
+  transition: all 0.2s; white-space: nowrap;
+}
+.gps-btn:hover  { background: rgba(59,130,246,0.22); }
+.gps-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.find-btn {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: white; border: none; padding: 0.5rem 1.2rem;
+  border-radius: 0.5rem; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
+  transition: all 0.2s; white-space: nowrap;
+}
+.find-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.find-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ── Status message ── */
+.status-msg {
+  margin: 0 1rem 0.75rem; padding: 0.6rem 0.875rem;
+  border-radius: 0.5rem; font-size: 0.8rem; display: none;
+  align-items: center; gap: 0.5rem;
+}
+.status-msg.info  { background: rgba(59,130,246,0.1);  border: 1px solid rgba(59,130,246,0.2);  color: #93c5fd;  display: flex; }
+.status-msg.error { background: rgba(239,68,68,0.1);   border: 1px solid rgba(239,68,68,0.2);   color: #fca5a5;  display: flex; }
+.status-msg.warn  { background: rgba(245,158,11,0.1);  border: 1px solid rgba(245,158,11,0.2);  color: #fcd34d;  display: flex; }
+
+/* ── Main layout: compact list LEFT + big map RIGHT ── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  padding: 0 1rem 1rem;
+}
+@media (max-width: 900px) {
+  .main-layout { grid-template-columns: 1fr; padding: 0 0.75rem 0.75rem; }
+  .shelters-panel { order: 2; max-height: 220px; overflow-y: auto; }
+  .map-panel { order: 1; }
+}
+
+/* ── Compact shelter list (left) ── */
+.shelters-panel { padding-right: 0.875rem; display: flex; flex-direction: column; }
+.panel-title {
+  color: #475569; font-size: 0.67rem; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 0.5rem; padding-left: 0.1rem; flex-shrink: 0;
+}
+
+/* Compact card — just enough to identify + select */
+.shelter-mini {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.shelter-mini::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px; background: #334155;
+}
+.shelter-mini.rank-1::before { background: #22c55e; }
+.shelter-mini.rank-2::before { background: #3b82f6; }
+.shelter-mini.rank-3::before { background: #a855f7; }
+.shelter-mini:hover, .shelter-mini.active {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+  transform: translateX(3px);
+}
+.mini-rank {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 800; flex-shrink: 0;
+  color: white;
+}
+.rank-1 .mini-rank { background: rgba(34,197,94,0.2);  color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+.rank-2 .mini-rank { background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+.rank-3 .mini-rank { background: rgba(168,85,247,0.2); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+.mini-info { flex: 1; min-width: 0; }
+.mini-name { color: #e2e8f0; font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-meta { color: #475569; font-size: 0.7rem; margin-top: 0.1rem; }
+.mini-arrow { color: #334155; font-size: 0.7rem; flex-shrink: 0; transition: color 0.2s; }
+.shelter-mini:hover .mini-arrow, .shelter-mini.active .mini-arrow { color: #94a3b8; }
+
+/* ── Map panel (right) — full height, relative for overlay ── */
+.map-panel {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+#shelterMap {
+  height: 560px; width: 100%; display: block;
+  /* Leaflet sets position:relative internally — that's fine,
+     but we need overflow visible so siblings can overlap */
+}
+@media (max-width: 900px) { #shelterMap { height: 340px; } }
+
+/* ══════════════════════════════════════════════════════
+   SHELTER DETAIL OVERLAY
+   Slides up from bottom of the map container.
+   Contains full shelter info + directions inside the map.
+   ══════════════════════════════════════════════════════ */
+.shelter-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(10, 15, 28, 0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  border-radius: 1rem 1rem 0 0;
+  z-index: 9000;        /* above all Leaflet layers (Leaflet uses 400-600) */
+  transform: translateY(100%);
+  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 72%;
+  overflow-y: auto;
+  pointer-events: all;  /* ensure clicks work inside overlay */
+}
+.shelter-overlay.open { transform: translateY(0); }
+
+/* Drag handle visual */
+.overlay-handle {
+  width: 36px; height: 4px; background: rgba(255,255,255,0.15);
+  border-radius: 2px; margin: 0.625rem auto 0; display: block;
+}
+
+/* Overlay header */
+.overlay-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 0.625rem 1rem 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.overlay-title-block { flex: 1; min-width: 0; }
+.overlay-rank-badge {
+  font-size: 0.62rem; font-weight: 700; padding: 0.2rem 0.55rem;
+  border-radius: 2rem; white-space: nowrap; margin-bottom: 0.3rem;
+  display: inline-block;
+}
+.overlay-rank-1 { background: rgba(34,197,94,0.12);  color: #4ade80;  border: 1px solid rgba(34,197,94,0.25); }
+.overlay-rank-2 { background: rgba(59,130,246,0.12); color: #60a5fa;  border: 1px solid rgba(59,130,246,0.25); }
+.overlay-rank-3 { background: rgba(168,85,247,0.12); color: #c084fc;  border: 1px solid rgba(168,85,247,0.25); }
+.overlay-name { color: #f1f5f9; font-size: 1rem; font-weight: 700; line-height: 1.3; }
+.overlay-address { color: #475569; font-size: 0.75rem; margin-top: 0.2rem; }
+.overlay-close {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.9rem; flex-shrink: 0; margin-left: 0.75rem;
+  transition: all 0.15s;
+}
+.overlay-close:hover { background: rgba(255,255,255,0.12); color: #f1f5f9; }
+
+/* Quick stats row */
+.overlay-stats {
+  display: flex; gap: 0; padding: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.overlay-stat {
+  flex: 1; text-align: center; padding: 0.75rem 0.5rem;
+  border-right: 1px solid rgba(255,255,255,0.07);
+}
+.overlay-stat:last-child { border-right: none; }
+.overlay-stat-val {
+  font-size: 1.1rem; font-weight: 700; color: #f1f5f9;
+  font-family: 'Courier New', monospace; line-height: 1;
+}
+.overlay-stat-lbl { font-size: 0.62rem; color: #475569; text-transform: uppercase; letter-spacing: 0.07em; margin-top: 0.2rem; }
+
+/* Occupancy bar inside overlay */
+.overlay-occ { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.overlay-occ-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: #475569; margin-bottom: 0.35rem; }
+.overlay-occ-bg { height: 6px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+.overlay-occ-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+/* Badges row */
+.overlay-badges { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.badge {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.6rem; border-radius: 0.4rem;
+}
+.badge-green { background: rgba(34,197,94,0.1);  color: #4ade80;  border: 1px solid rgba(34,197,94,0.2); }
+.badge-blue  { background: rgba(59,130,246,0.1); color: #60a5fa;  border: 1px solid rgba(59,130,246,0.2); }
+.badge-amber { background: rgba(245,158,11,0.1); color: #fbbf24;  border: 1px solid rgba(245,158,11,0.2); }
+.badge-red   { background: rgba(239,68,68,0.1);  color: #f87171;  border: 1px solid rgba(239,68,68,0.2); }
+
+/* Action buttons */
+.overlay-actions { display: flex; gap: 0.625rem; padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.btn-overlay-call {
+  flex: 1; background: rgba(34,197,94,0.1); color: #4ade80;
+  border: 1px solid rgba(34,197,94,0.22); padding: 0.6rem;
+  border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 0.4rem; text-decoration: none; transition: background 0.2s;
+}
+.btn-overlay-call:hover { background: rgba(34,197,94,0.18); }
+.btn-overlay-directions {
+  flex: 2; background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white; border: none; padding: 0.6rem;
+  border-radius: 0.5rem; font-size: 0.8rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 0.4rem; transition: opacity 0.2s;
+}
+.btn-overlay-directions:hover { opacity: 0.88; }
+
+/* Directions section inside overlay */
+.overlay-directions { padding: 0 0 0.5rem; }
+.overlay-dir-header {
+  padding: 0.625rem 1rem 0.5rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.overlay-dir-header span { font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.07em; }
+.overlay-dir-meta { font-size: 0.7rem; color: #334155; }
+.step-item {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  padding: 0.4rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 0.75rem; color: #64748b; line-height: 1.4;
+}
+.step-item:first-child { background: rgba(34,197,94,0.04); color: #86efac; }
+.step-item:last-child  { background: rgba(239,68,68,0.04);  color: #fca5a5; border: none; }
+.step-icon { font-size: 0.8rem; flex-shrink: 0; margin-top: 1px; }
+.step-dist { color: #334155; font-size: 0.68rem; white-space: nowrap; margin-left: auto; padding-left: 0.5rem; }
+
+/* Map must be position:relative for overlay to work */
+.map-container {
+  position: relative;
+  flex: 1;
+  /* overflow visible so overlay can slide up from bottom */
+  overflow: visible;
+}
+
+/* Map panel must NOT clip overflow — overlay slides outside the map div */
+.map-panel {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  /* NO overflow:hidden here — that would clip the overlay */
+  border: 1px solid rgba(255,255,255,0.08);
+  overflow: visible;
+}
+
+/* Empty + loading */
+.empty-state { text-align: center; padding: 2rem 1rem; color: #334155; }
+.empty-state h3 { color: #475569; font-size: 0.9rem; margin-bottom: 0.3rem; }
+.empty-state p  { font-size: 0.78rem; line-height: 1.5; }
+.loading-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  z-index: 9999; align-items: center; justify-content: center;
+  flex-direction: column; gap: 0.875rem;
+}
+.loading-overlay.active { display: flex; }
+.spinner {
+  width: 2rem; height: 2rem;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-top-color: #3b82f6; border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: #94a3b8; font-size: 0.875rem; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Finding nearest shelters…</div>
+</div>
+
+<div class="finder-wrap">
+
+  <!-- Header -->
+  <div class="finder-header">
+    <div class="sos-badge">
+      <i data-lucide="shield-alert" style="width:0.7rem;height:0.7rem;"></i>
+      Emergency Shelter Finder
+    </div>
+    <h1>Find Nearest Flood Shelter</h1>
+    <p>Real-time availability · GPS routing · Turn-by-turn directions</p>
+  </div>
+
+  <!-- Location bar -->
+  <div class="location-bar">
+    <div class="location-info">
+      <div class="loc-label">Your Location</div>
+      <div class="loc-value">
+        District: <span>{{ user_district }}</span>
+        &nbsp;·&nbsp;
+        GPS: <span id="gpsStatus">not acquired</span>
+      </div>
+    </div>
+    <button class="gps-btn" id="gpsBtn" onclick="acquireGPS()">
+      <i data-lucide="crosshair" style="width:0.8rem;height:0.8rem;"></i> Use GPS
+    </button>
+    <button class="find-btn" id="findBtn" onclick="findShelters()">
+      <i data-lucide="search" style="width:0.8rem;height:0.8rem;"></i> Find Shelters
+    </button>
+  </div>
+
+  <div class="status-msg" id="statusMsg"></div>
+
+  <!-- Main layout -->
+  <div class="main-layout">
+
+    <!-- LEFT: compact shelter list -->
+    <div class="shelters-panel">
+      <div class="panel-title" id="panelTitle">Press "Find Shelters" to begin</div>
+      <div id="shelterCards">
+        <div class="empty-state">
+          <i data-lucide="map-pin" style="width:2rem;height:2rem;color:#1e293b;margin-bottom:0.75rem;"></i>
+          <h3>No results yet</h3>
+          <p>Tap Find Shelters to locate<br>nearest available shelters.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Map with overlay inside -->
+    <div class="map-panel">
+      <div class="map-container" id="mapContainer">
+
+        <!-- Leaflet map — overlay must be SIBLING not child,
+             because Leaflet forces overflow:hidden on this div -->
+        <div id="shelterMap"></div>
+
+        <!-- ════════════════════════════════════════
+             SHELTER DETAIL OVERLAY
+             Sibling of #shelterMap, both inside #mapContainer.
+             #mapContainer has position:relative so overlay
+             anchors to it correctly.
+             ════════════════════════════════════════ -->
+        <div class="shelter-overlay" id="shelterOverlay">
+
+          <!-- Drag handle -->
+          <div class="overlay-handle"></div>
+
+          <!-- Header: name + close -->
+          <div class="overlay-header">
+            <div class="overlay-title-block">
+              <div class="overlay-rank-badge" id="overlayRankBadge">Nearest</div>
+              <div class="overlay-name" id="overlayName">Shelter Name</div>
+              <div class="overlay-address" id="overlayAddress">Address</div>
+            </div>
+            <button class="overlay-close" onclick="closeOverlay()" title="Close">✕</button>
+          </div>
+
+          <!-- Quick stats: distance · time · free slots -->
+          <div class="overlay-stats">
+            <div class="overlay-stat">
+              <div class="overlay-stat-val" id="overlayDist">—</div>
+              <div class="overlay-stat-lbl">km away</div>
+            </div>
+            <div class="overlay-stat">
+              <div class="overlay-stat-val" id="overlayTime">—</div>
+              <div class="overlay-stat-lbl">min drive</div>
+            </div>
+            <div class="overlay-stat">
+              <div class="overlay-stat-val" id="overlayFree">—</div>
+              <div class="overlay-stat-lbl">free slots</div>
+            </div>
+            <div class="overlay-stat">
+              <div class="overlay-stat-val" id="overlayOccPct">—</div>
+              <div class="overlay-stat-lbl">% occupied</div>
+            </div>
+          </div>
+
+          <!-- Occupancy bar -->
+          <div class="overlay-occ">
+            <div class="overlay-occ-label">
+              <span>Occupancy</span>
+              <span id="overlayOccLabel">0%</span>
+            </div>
+            <div class="overlay-occ-bg">
+              <div class="overlay-occ-fill" id="overlayOccBar" style="width:0%;background:#22c55e;"></div>
+            </div>
+          </div>
+
+          <!-- Feature badges -->
+          <div class="overlay-badges" id="overlayBadges"></div>
+
+          <!-- Call + Directions buttons -->
+          <div class="overlay-actions" id="overlayActions"></div>
+
+          <!-- Turn-by-turn directions -->
+          <div class="overlay-directions" id="overlayDirections" style="display:none;">
+            <div class="overlay-dir-header">
+              <span>Turn-by-turn</span>
+              <span class="overlay-dir-meta" id="overlayDirMeta"></span>
+            </div>
+            <div id="overlaySteps"></div>
+          </div>
+
+        </div><!-- end shelter-overlay -->
+
+      </div><!-- end map-container -->
+    </div><!-- end map-panel -->
+
+  </div><!-- end main-layout -->
+</div><!-- end finder-wrap -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+lucide.createIcons();
+
+// ── State ──────────────────────────────────────────────────────────────
+let userLat = null, userLon = null;
+const districtFallback = "{{ user_district }}";
+let map = null, userMarker = null;
+let shelterMarkers = [], routeLines = [];
+let activeOverlayIdx = null;
+
+const DISTRICT_CENTRES = {
+  "Thiruvananthapuram": [8.5241, 76.9366], "Kollam":      [8.8932, 76.6141],
+  "Pathanamthitta":     [9.2648, 76.7870], "Alappuzha":   [9.4981, 76.3388],
+  "Kottayam":           [9.5916, 76.5222], "Idukki":      [9.9189, 76.9723],
+  "Ernakulam":          [9.9312, 76.2673], "Thrissur":    [10.5276, 76.2144],
+  "Palakkad":           [10.7867, 76.6548], "Malappuram": [11.0730, 76.0740],
+  "Kozhikode":          [11.2588, 75.7804], "Wayanad":    [11.6854, 76.1320],
+  "Kannur":             [11.8745, 75.3704], "Kasaragod":  [12.4996, 74.9869],
+};
+const RANK_COLORS  = ['#22c55e', '#3b82f6', '#a855f7'];
+const RANK_LABELS  = ['Nearest', '2nd', '3rd'];
+const RANK_CLASSES = ['overlay-rank-1', 'overlay-rank-2', 'overlay-rank-3'];
+const ROUTE_STYLES = [
+  { color: '#22c55e', dashArray: null,  weight: 4 },
+  { color: '#3b82f6', dashArray: '8,6', weight: 3 },
+  { color: '#a855f7', dashArray: '4,6', weight: 3 },
+];
+const STEP_ICONS = {
+  'turn-left':'↰','turn-right':'↱','turn-slight-left':'↲','turn-slight-right':'↳',
+  'turn-sharp-left':'⟵','turn-sharp-right':'⟶','roundabout':'↻','straight':'↑',
+  'depart':'📍','arrive':'🏁','merge':'⤵','fork':'⑂','default':'•'
+};
+
+// ── Map init ───────────────────────────────────────────────────────────
+function initMap(lat, lon) {
+  if (!map) {
+    map = L.map('shelterMap', { zoomControl: true }).setView([lat, lon], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(map);
+    // Close overlay when clicking map background
+    map.on('click', () => closeOverlay());
+  } else {
+    map.setView([lat, lon], 12);
+  }
+}
+
+function setUserMarker(lat, lon) {
+  if (userMarker) map.removeLayer(userMarker);
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:14px;height:14px;background:#3b82f6;border:2px solid white;
+           border-radius:50%;box-shadow:0 0 0 5px rgba(59,130,246,0.2);"></div>`,
+    iconSize: [14,14], iconAnchor: [7,7]
+  });
+  userMarker = L.marker([lat, lon], {icon}).addTo(map)
+    .bindPopup('<b>📍 Your Location</b>').openPopup();
+}
+
+function clearRoutes()  { routeLines.forEach(l => map.removeLayer(l)); routeLines = []; }
+function clearMarkers() { shelterMarkers.forEach(m => map.removeLayer(m)); shelterMarkers = []; }
+
+// ── GPS ────────────────────────────────────────────────────────────────
+function acquireGPS() {
+  const btn = document.getElementById('gpsBtn');
+  if (!navigator.geolocation) { showStatus('GPS not supported. Using district centre.', 'warn'); return; }
+  btn.disabled = true;
+  btn.innerHTML = `<span style="display:inline-block;width:0.75rem;height:0.75rem;
+    border:2px solid rgba(147,197,253,0.25);border-top-color:#93c5fd;
+    border-radius:50%;animation:spin 0.65s linear infinite;"></span> Acquiring…`;
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLat = pos.coords.latitude;
+      userLon = pos.coords.longitude;
+      document.getElementById('gpsStatus').textContent = userLat.toFixed(5) + ', ' + userLon.toFixed(5);
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="check" style="width:0.8rem;height:0.8rem;"></i> GPS Ready`;
+      lucide.createIcons();
+      showStatus('GPS acquired. Press Find Shelters.', 'info');
+      initMap(userLat, userLon);
+      setUserMarker(userLat, userLon);
+    },
+    () => {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="crosshair" style="width:0.8rem;height:0.8rem;"></i> Use GPS`;
+      lucide.createIcons();
+      showStatus('GPS denied — using district as origin.', 'warn');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+// ── Find shelters ──────────────────────────────────────────────────────
+function findShelters() {
+  let lat = userLat, lon = userLon;
+  if (!lat || !lon) {
+    const c = DISTRICT_CENTRES[districtFallback];
+    if (c) { lat = c[0]; lon = c[1]; showStatus('Using ' + districtFallback + ' district centre.', 'warn'); }
+    else   { showStatus('Enable GPS to continue.', 'error'); return; }
+  }
+  showLoading('Finding nearest shelters…');
+  document.getElementById('findBtn').disabled = true;
+  closeOverlay();
+  clearRoutes(); clearMarkers();
+  initMap(lat, lon); setUserMarker(lat, lon);
+
+  fetch(`/shelters/recommendations/?lat=${lat}&lon=${lon}`, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(r => { if (!r.ok) throw new Error('Server error ' + r.status); return r.json(); })
+  .then(data => {
+    hideLoading();
+    document.getElementById('findBtn').disabled = false;
+    renderShelters(data.shelters || [], lat, lon);
+  })
+  .catch(err => {
+    hideLoading();
+    document.getElementById('findBtn').disabled = false;
+    showStatus('Error: ' + err.message, 'error');
+  });
+}
+
+// ── Render compact cards + map markers ────────────────────────────────
+function renderShelters(shelters, originLat, originLon) {
+  const container = document.getElementById('shelterCards');
+  const title     = document.getElementById('panelTitle');
+
+  if (!shelters.length) {
+    title.textContent = 'No shelters found';
+    container.innerHTML = `<div class="empty-state">
+      <h3>No available shelters</h3>
+      <p>All shelters may be full or none are active.</p></div>`;
+    return;
+  }
+
+  title.textContent = shelters.length + ' shelters found';
+  container.innerHTML = '';
+  window._shelters  = shelters;
+  window._originLat = originLat;
+  window._originLon = originLon;
+
+  const bounds = [[originLat, originLon]];
+
+  shelters.forEach((s, i) => {
+    const rank    = i + 1;
+    const color   = RANK_COLORS[i] || '#94a3b8';
+    const distTxt = s.distance_km  ? s.distance_km  + ' km'       : '—';
+    const durTxt  = s.duration_min ? s.duration_min + ' min'       : '';
+    const occ     = s.occupancy_pct || 0;
+
+    // Compact mini card
+    const mini = document.createElement('div');
+    mini.className = `shelter-mini rank-${rank}`;
+    mini.id = `mini-${i}`;
+    mini.innerHTML = `
+      <div class="mini-rank">${rank}</div>
+      <div class="mini-info">
+        <div class="mini-name">${s.name}</div>
+        <div class="mini-meta">${distTxt}${durTxt ? ' · ' + durTxt : ''} · ${occ}% full</div>
+      </div>
+      <span class="mini-arrow">›</span>
+    `;
+    mini.addEventListener('click', () => openOverlay(i));
+    container.appendChild(mini);
+
+    // Map marker — numbered circle
+    const mIcon = L.divIcon({
+      className: '',
+      html: `<div style="background:${color};color:white;font-weight:800;font-size:0.7rem;
+             width:28px;height:28px;border-radius:50%;border:2.5px solid white;
+             display:flex;align-items:center;justify-content:center;
+             box-shadow:0 2px 10px rgba(0,0,0,0.5);">${rank}</div>`,
+      iconSize: [28,28], iconAnchor: [14,14]
+    });
+    const marker = L.marker([s.lat, s.lon], {icon: mIcon}).addTo(map);
+    // Clicking marker opens the overlay
+    marker.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
+      openOverlay(i);
+    });
+    shelterMarkers.push(marker);
+    bounds.push([s.lat, s.lon]);
+  });
+
+  if (bounds.length > 1) map.fitBounds(bounds, { padding: [50, 50] });
+
+  // Auto-open nearest shelter overlay
+  openOverlay(0);
+}
+
+// ── Open overlay with full shelter details ────────────────────────────
+function openOverlay(idx) {
+  const s = (window._shelters || [])[idx];
+  if (!s) return;
+  activeOverlayIdx = idx;
+
+  // Highlight mini card
+  document.querySelectorAll('.shelter-mini').forEach((c, i) => c.classList.toggle('active', i === idx));
+
+  const occ      = s.occupancy_pct || 0;
+  const occColor = occ >= 80 ? '#ef4444' : occ >= 50 ? '#f59e0b' : '#22c55e';
+
+  // Rank badge
+  const badge = document.getElementById('overlayRankBadge');
+  badge.textContent = RANK_LABELS[idx] || '#' + (idx+1);
+  badge.className   = 'overlay-rank-badge ' + (RANK_CLASSES[idx] || '');
+
+  // Name + address
+  document.getElementById('overlayName').textContent    = s.name;
+  document.getElementById('overlayAddress').textContent = s.address || s.district || '';
+
+  // Stats
+  document.getElementById('overlayDist').textContent   = s.distance_km  || '—';
+  document.getElementById('overlayTime').textContent   = s.duration_min || '—';
+  document.getElementById('overlayFree').textContent   = s.free_slots   ?? '—';
+  document.getElementById('overlayOccPct').textContent = occ + '%';
+
+  // Occupancy bar
+  document.getElementById('overlayOccLabel').textContent     = occ + '%';
+  document.getElementById('overlayOccBar').style.width       = occ + '%';
+  document.getElementById('overlayOccBar').style.background  = occColor;
+
+  // Feature badges
+  const badges = document.getElementById('overlayBadges');
+  badges.innerHTML = '';
+  if (s.has_medical)   badges.innerHTML += `<span class="badge badge-green">🏥 Medical Support</span>`;
+  if (s.is_accessible) badges.innerHTML += `<span class="badge badge-blue">♿ Accessible</span>`;
+  if (occ >= 80)       badges.innerHTML += `<span class="badge badge-red">⚠️ Nearly Full</span>`;
+  else if (occ >= 50)  badges.innerHTML += `<span class="badge badge-amber">⚡ Filling Up</span>`;
+  else                 badges.innerHTML += `<span class="badge badge-green">✅ Space Available</span>`;
+
+  // Action buttons
+  const actions = document.getElementById('overlayActions');
+  actions.innerHTML = `
+    <button class="btn-overlay-directions" onclick="drawRoute(${idx})">
+      <i data-lucide="navigation" style="width:0.85rem;height:0.85rem;"></i> Get Directions
+    </button>
+    ${s.contact_phone ? `<a class="btn-overlay-call" href="tel:${s.contact_phone}">
+      <i data-lucide="phone" style="width:0.85rem;height:0.85rem;"></i> Call
+    </a>` : ''}
+  `;
+
+  // Turn-by-turn directions
+  const steps   = s.route_steps || [];
+  const dirWrap = document.getElementById('overlayDirections');
+  if (steps.length) {
+    document.getElementById('overlayDirMeta').textContent =
+      (s.distance_km||'?') + ' km · ' + (s.duration_min||'?') + ' min';
+    document.getElementById('overlaySteps').innerHTML = steps.map(step => {
+      const icon = STEP_ICONS[step.maneuver] || STEP_ICONS['default'];
+      const dist = step.distance >= 1000
+        ? (step.distance/1000).toFixed(1)+' km'
+        : Math.round(step.distance)+' m';
+      return `<div class="step-item">
+        <span class="step-icon">${icon}</span>
+        <span>${step.instruction || step.name || '—'}</span>
+        <span class="step-dist">${dist}</span>
+      </div>`;
+    }).join('');
+    dirWrap.style.display = 'block';
+  } else {
+    dirWrap.style.display = 'none';
+  }
+
+  // Draw route on map
+  drawRoute(idx);
+
+  // Open overlay
+  document.getElementById('shelterOverlay').classList.add('open');
+
+  lucide.createIcons();
+}
+
+// ── Draw route on map ─────────────────────────────────────────────────
+function drawRoute(idx) {
+  const s = (window._shelters || [])[idx];
+  if (!s) return;
+  clearRoutes();
+  const style = ROUTE_STYLES[idx] || ROUTE_STYLES[2];
+
+  if (s.route_geometry && s.route_geometry.coordinates) {
+    const latlngs = s.route_geometry.coordinates.map(c => [c[1], c[0]]);
+    const line = L.polyline(latlngs, {
+      color: style.color, weight: style.weight,
+      dashArray: style.dashArray, opacity: 0.88
+    }).addTo(map);
+    routeLines.push(line);
+    map.fitBounds(line.getBounds(), { padding: [60, 60] });
+  } else {
+    const line = L.polyline(
+      [[window._originLat, window._originLon], [s.lat, s.lon]],
+      { color: style.color, weight: 2, dashArray: '6,8', opacity: 0.5 }
+    ).addTo(map);
+    routeLines.push(line);
+  }
+}
+
+// ── Close overlay ─────────────────────────────────────────────────────
+function closeOverlay() {
+  document.getElementById('shelterOverlay').classList.remove('open');
+  document.querySelectorAll('.shelter-mini').forEach(c => c.classList.remove('active'));
+  activeOverlayIdx = null;
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────
+function showStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  const icons = { error: 'alert-circle', warn: 'alert-triangle', info: 'info' };
+  el.className = 'status-msg ' + type;
+  el.innerHTML = `<i data-lucide="${icons[type]||'info'}" style="width:0.85rem;height:0.85rem;flex-shrink:0;"></i> ${msg}`;
+  el.style.display = 'flex';
+  lucide.createIcons();
+  setTimeout(() => el.style.display = 'none', 6000);
+}
+function showLoading(txt) {
+  document.getElementById('loadingText').textContent = txt;
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+// Init map on load
+document.addEventListener('DOMContentLoaded', () => {
+  const c = DISTRICT_CENTRES[districtFallback] || [10.0, 76.5];
+  initMap(c[0], c[1]);
+});
+</script>
+{% endblock %}

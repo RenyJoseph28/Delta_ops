@@ -46,4 +46,9 @@ urlpatterns = [
     path("volunteer/logout/",  views.volunteer_logout,       name="volunteer_logout"),
     path("volunteer/update/",  views.volunteer_update,       name="volunteer_update"),
     path("volunteer/sync/",    views.volunteer_offline_sync, name="volunteer_offline_sync"),
+
+    # ─────────────────────────────────────────────
+    # PUBLIC USER — SHELTER FINDER API
+    # ─────────────────────────────────────────────
+    path("recommendations/",   views.public_shelter_recommendations, name="public_shelter_recommendations"),
 ]

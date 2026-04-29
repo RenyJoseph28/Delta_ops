@@ -182,6 +182,12 @@ KERALA_DISTRICTS = [
     "Thiruvananthapuram","Thrissur","Wayanad"
 ]
 
+# OpenWeather doesn't recognise some district names directly.
+# Map district name → nearest city that OpenWeather knows.
+DISTRICT_CITY_MAP = {
+    "Wayanad": "Kalpetta",  # Kalpetta is Wayanad's district headquarters
+}
+
 # def ml_flood_prediction_view(request):
 #     if "super_admin_id" not in request.session:
 #         return redirect("admin_login")
@@ -284,14 +290,34 @@ def ml_flood_prediction_view(request):
     # =====================================================
     # LOOP THROUGH ALL DISTRICTS
     # =====================================================
-    for d in KERALA_DISTRICTS:
+    # for d in KERALA_DISTRICTS:
 
         # -------------------------------------------------
         # 1. Fetch Live Weather
         # -------------------------------------------------
-        weather = fetch_weather_for_city(d)
+        # weather = fetch_weather_for_city(d)
+        # if not weather:
+        #     continue
+
+    for d in KERALA_DISTRICTS:
+        city_name = DISTRICT_CITY_MAP.get(d, d)  # use mapped name if available
+        weather   = fetch_weather_for_city(city_name)
+
+
+        # DEBUG — shows exactly what API returns for each district
+        print(f"[WEATHER FETCH] {d} (queried as '{city_name}') → {'✅ OK' if weather else '❌ FAILED'}")
+
         if not weather:
-            continue
+            print(f"[ML VIEW] ⚠️  Weather fetch failed for {d} ({city_name}) — using defaults")
+            weather = {
+                "temperature":      28,
+                "humidity":         70,
+                "pressure":         1010,
+                "wind_speed":       2,
+                "rain_1h":          0,
+                "rain_probability": 0,
+                "description":      "Data unavailable",
+            }
 
         # -------------------------------------------------
         # 2. Predict Flood Risk (ML + Demo Override Happens)

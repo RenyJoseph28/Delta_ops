@@ -229,6 +229,12 @@
             <!-- <li><a href="#" class="{% block nav_weather %}{% endblock %}"><i data-lucide="cloud-rain"></i> Live
                     Weather</a></li>
             <li><a href="#" class="{% block nav_zones %}{% endblock %}"><i data-lucide="map"></i> Flood Zones</a></li> -->
+            <li>
+                <a href="{% url 'shelter_finder' %}" class="{% block nav_shelter %}{% endblock %}">
+                    <i data-lucide="map-pin"></i> Find Shelter
+                </a>
+            </li>
+
             <li><a href="{% url 'signout' %}"><i data-lucide="log-out"></i> Logout</a></li>
         </ul>
     </div>
